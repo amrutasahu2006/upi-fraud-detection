@@ -61,35 +61,16 @@ function SecurityRecommendations() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 md:py-8">
-      {/* Main Container */}
-      <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl mx-auto bg-white min-h-[calc(100vh-2rem)] md:min-h-[calc(100vh-4rem)] rounded-lg md:rounded-xl shadow-lg">
-        {/* Header Section */}
-        <div className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-gray-200 bg-white sticky top-0 z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <Link to="/" className="text-gray-600 hover:text-gray-900 transition-colors">
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </Link>
-            <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900">
-              Security Recommendations
-            </h1>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="w-full max-w-screen-lg bg-white flex flex-col">
+        {/* Page Header */}
+        <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
+          <Link to="/" className="text-2xl cursor-pointer">←</Link>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Security Recommendations</h1>
+        </header>
 
-        {/* Main Content Area */}
-        <div className="px-4 md:px-6 py-6 md:py-8 pb-20 md:pb-24">
+        {/* Main Content */}
+        <main className="p-4 md:p-6 lg:p-8">
           {/* Heading Section */}
           <div className="mb-6 md:mb-8">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
@@ -123,7 +104,7 @@ function SecurityRecommendations() {
                     </p>
                     <button
                       onClick={rec.buttonAction}
-                      className="w-full bg-blue-600 text-white font-medium py-2.5 md:py-3 px-4 md:px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm md:text-base shadow-sm hover:shadow-md"
+                      className="w-full bg-blue-600 text-white font-medium py-2.5 md:py-3 px-4 md:px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm md:text-base shadow-sm hover:shadow-md cursor-pointer"
                     >
                       {rec.buttonText}
                     </button>
@@ -132,7 +113,7 @@ function SecurityRecommendations() {
               </div>
             ))}
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

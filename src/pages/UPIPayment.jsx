@@ -22,7 +22,7 @@ function UPIPaymentClean() {
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
         {/* Page Header */}
-        <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
+        <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <button onClick={() => navigate('/')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Send Money</h1>
         </header>
@@ -66,7 +66,7 @@ function UPIPaymentClean() {
                     <button
                       key={amount}
                       onClick={() => setSelectedAmount(amount)}
-                      className={`px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-2 font-bold transition-all text-sm sm:text-lg ${
+                      className={`px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl border-2 font-bold transition-all text-sm sm:text-lg cursor-pointer ${
                         selectedAmount === amount
                           ? "border-blue-600 bg-blue-50 text-blue-600 shadow-lg shadow-blue-100"
                           : "border-slate-100 bg-white text-slate-600 hover:border-slate-300"
@@ -109,7 +109,7 @@ function UPIPaymentClean() {
                 </div>
 
                 <div className="pt-4">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-bold text-xl sm:text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.2)] transition-all active:scale-[0.98]">
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-bold text-xl sm:text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.2)] transition-all active:scale-[0.98] cursor-pointer">
                     Send ₹{selectedAmount?.toLocaleString()}
                   </button>
                   
@@ -127,14 +127,14 @@ function UPIPaymentClean() {
           </div>
 
           {/* RIGHT COLUMN: Sidebar (4 Columns) */}
-          <div className="lg:col-span-4 space-y-6 sm:space-y-8">
+          <div className="lg:col-span-4 space-y-4 sm:space-y-8">
             
             {/* Recent Recipients - Horizontal scroll on mobile for better UX */}
             <div className="bg-white border border-slate-200 rounded-[2rem] p-6 sm:p-8 shadow-sm">
               <h3 className="font-bold text-slate-900 text-lg sm:text-xl mb-4 sm:mb-6">Recent Recipients</h3>
               <div className="space-y-2 sm:space-y-3">
                 {quickContacts.map((contact) => (
-                  <button key={contact.name} className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 rounded-xl sm:rounded-2xl transition-all group border border-transparent hover:border-slate-100">
+                  <button key={contact.name} className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 rounded-xl sm:rounded-2xl transition-all group border border-transparent hover:border-slate-100 cursor-pointer">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl ${contact.color}`}>
                         {contact.name[0]}

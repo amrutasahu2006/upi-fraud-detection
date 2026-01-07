@@ -54,23 +54,23 @@ const SecurityWarning = () => {
           <div className="space-y-3 sm:space-y-4 pt-2">
             
             <div className="text-left">
-              <button onClick={() => navigate('/risk-details')} className="text-red-600 text-sm font-medium hover:underline">
+              <button onClick={() => navigate('/risk-details')} className="text-red-600 text-sm font-medium hover:underline cursor-pointer">
                 Explain why in detail
               </button>
             </div>
             
             {/* Primary Action */}
-            <button onClick={() => navigate('/blocked')} className="w-full bg-red-600 text-white py-3.5 sm:py-4 px-4 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-bold text-sm sm:text-base shadow-lg shadow-red-200">
+            <button onClick={() => navigate('/blocked')} className="w-full bg-red-600 text-white py-3.5 sm:py-4 px-4 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-bold text-sm sm:text-base shadow-lg shadow-red-200 cursor-pointer">
               Block & Report VPA
             </button>
 
             {/* Secondary Actions - Using Grid for Tablet/Desktop to save vertical space */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button onClick={() => navigate('/chatbot')} className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold">
+                <button onClick={() => navigate('/chatbot')} className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold cursor-pointer">
                     <MessageCircle size={18} />
                     <span>Ask bot for help</span>
                 </button>
-                <button onClick={() => navigate('/payment')} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium">
+                <button onClick={() => navigate('/payment')} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer">
                     Proceed Anyway
                 </button>
             </div>

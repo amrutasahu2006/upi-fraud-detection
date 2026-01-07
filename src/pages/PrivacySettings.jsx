@@ -13,8 +13,8 @@ export default function PrivacySettings() {
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
 
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button onClick={() => navigate('/')} aria-label="Go back" className="text-3xl md:text-4xl lg:text-5xl cursor-pointer">←</button>
+        <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
+          <button onClick={() => navigate('/')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">
             Privacy & AI Settings
           </h1>

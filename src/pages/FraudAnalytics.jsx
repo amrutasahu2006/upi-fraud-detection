@@ -8,8 +8,8 @@ export default function FraudAnalytics() {
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
 
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button className="text-3xl md:text-4xl lg:text-5xl">←</button>
+        <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
+          <button className="text-3xl md:text-4xl lg:text-5xl cursor-pointer">←</button>
           <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">
             Fraud Analytics
           </h1>
