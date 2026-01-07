@@ -3,6 +3,7 @@ import SecurityChatbot from "./pages/SecurityChatbot";
 import SecurityRecommendations from "./pages/SecurityRecommendations";
 import TransactionBlocked from "./pages/TransactionBlocked";
 import Safety from "./pages/Safety";
+import PrivacySettings from "./pages/PrivacySettings";
 
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <Route path="/recommendations" element={<SecurityRecommendations />} />
         <Route path="/blocked" element={<TransactionBlocked />} />
         <Route path="/safety" element={<Safety />} />
+        <Route path="/privacy-settings" element={<PrivacySettings />} />
       </Routes>
     </BrowserRouter>
   );
