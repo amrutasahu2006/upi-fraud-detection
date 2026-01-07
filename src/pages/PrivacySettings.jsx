@@ -1,11 +1,14 @@
 import { useState } from "react";
 import SettingToggle from "../components/SettingToggle";
 import BottomNavigation from "../components/BottomNavigation";
+import { useNavigate } from "react-router-dom";
+
 
 export default function PrivacySettings() {
   const [anonymousSharing, setAnonymousSharing] = useState(true);
   const [aiDetection, setAiDetection] = useState(true);
   const [behaviorLearning, setBehaviorLearning] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
@@ -44,7 +47,10 @@ export default function PrivacySettings() {
           />
 
           <div className="pt-6 md:pt-8 lg:pt-10">
-            <button className="w-full bg-blue-600 text-white py-3 md:py-4 lg:py-5 rounded-lg text-sm md:text-base lg:text-lg font-medium cursor-pointer">
+            <button 
+              className="w-full bg-blue-600 text-white py-3 md:py-4 lg:py-5 rounded-lg text-sm md:text-base lg:text-lg font-medium cursor-pointer"
+              onClick={() => navigate("/recommendations")}
+            >
               View Security Recommendations
             </button>
 
