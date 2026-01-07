@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom";
+
 export default function Header() {
+  const navigate = useNavigate();
+
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b bg-white">
       {/* Left: Logo + Icon */}
@@ -13,7 +17,7 @@ export default function Header() {
       </div>
 
       {/* Right: Settings Button */}
-      <button className="text-gray-500 hover:text-gray-700 text-xl md:text-2xl lg:text-3xl">
+      <button className="text-gray-500 hover:text-gray-700 text-xl md:text-2xl lg:text-3xl cursor-pointer" onClick={() => navigate("/privacy-settings")}>
         ⚙️
       </button>
     </header>

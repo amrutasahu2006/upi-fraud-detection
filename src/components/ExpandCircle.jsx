@@ -7,7 +7,7 @@ export default function ExpandCircle() {
       <p className="text-xs text-gray-600 mt-1">
         Add family members to monitor their UPI transactions.
       </p>
-      <button className="mt-3 w-full bg-blue-500 text-white py-2 rounded-md text-sm cursor-pointer hover:bg-blue-700">
+      <button className="mt-3 w-full bg-blue-500 text-white py-2 rounded-md text-sm cursor-pointer hover:bg-blue-700 md:w-auto md:px-10">
         Add New Member
       </button>
     </div>
