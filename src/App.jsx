@@ -9,6 +9,7 @@ import UPIPayment from "./pages/UPIPayment";
 import TransactionRiskDetails from "./pages/TransactionRiskDetails";
 import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
+import FraudAnalytics from "./pages/FraudAnalytics";
 
 function App() {
   return (
@@ -21,6 +22,9 @@ function App() {
         <Route path="/recommendations" element={<SecurityRecommendations />} />
         <Route path="/safety" element={<Safety />} />
         <Route path="/privacy-settings" element={<PrivacySettings />} />
+        
+        {/* Analytics Section */}
+        <Route path="/fraud-analytics" element={<FraudAnalytics />} />
         
         {/* Transaction & Risk Flow */}
         <Route path="/payment" element={<UPIPayment />} />
