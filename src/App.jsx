@@ -10,23 +10,25 @@ import TransactionRiskDetails from "./pages/TransactionRiskDetails";
 import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
 import FraudAnalytics from "./pages/FraudAnalytics";
+import BNavBar from "./components/BottomNavigation";
 
 function App() {
   return (
     <BrowserRouter>
+      <BNavBar />
       <Routes>
         {/* Main Landing / Warning */}
         <Route path="/" element={<SecurityWarning />} />
         <Route path="/chatbot" element={<SecurityChatbot />} />
-        
+
         {/* Security & Recommendations */}
         <Route path="/recommendations" element={<SecurityRecommendations />} />
         <Route path="/safety" element={<Safety />} />
         <Route path="/privacy-settings" element={<PrivacySettings />} />
-        
+
         {/* Analytics Section */}
         <Route path="/fraud-analytics" element={<FraudAnalytics />} />
-        
+
         {/* Transaction & Risk Flow */}
         <Route path="/payment" element={<UPIPayment />} />
         <Route path="/blocked" element={<TransactionBlocked />} />
