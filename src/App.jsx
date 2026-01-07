@@ -5,6 +5,7 @@ import TransactionBlocked from "./pages/TransactionBlocked";
 import SecurityWarning from "./pages/SecurityWarning";
 import UPIPayment from "./pages/UPIPayment";
 import TransactionRiskDetails from "./pages/TransactionRiskDetails";
+import Safety from "./pages/Safety";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/warning" element={<SecurityWarning />} />
         <Route path="/payment" element={<UPIPayment />} />
         <Route path="/risk-details" element={<TransactionRiskDetails />} />
+         <Route path="/safety" element={<Safety />} />
       </Routes>
     </BrowserRouter>
   );
