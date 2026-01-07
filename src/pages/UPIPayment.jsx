@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Shield, Paperclip, CreditCard, ShieldCheck, 
   ChevronRight, User, Info 
@@ -8,6 +9,7 @@ function UPIPaymentClean() {
   const [selectedAmount, setSelectedAmount] = useState(500);
   const [upiId, setUpiId] = useState("");
   const [note, setNote] = useState("");
+  const navigate = useNavigate();
 
   const amounts = [500, 1000, 2000, 5000];
   const quickContacts = [
@@ -17,16 +19,19 @@ function UPIPaymentClean() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-blue-100">
-      
-      {/* 1. Main Content Wrapper - Responsive vertical padding */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-16 lg:py-24">
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="w-full max-w-screen-lg bg-white flex flex-col">
+        {/* Page Header */}
+        <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
+          <button onClick={() => navigate('/')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Send Money</h1>
+        </header>
+
+        {/* Main Content */}
+        <main className="p-4 md:p-6 lg:p-8">
         
         {/* Page Heading Section - Scaled text for mobile */}
         <div className="mb-8 lg:mb-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 mb-2 sm:mb-4 tracking-tight">
-            Send Money
-          </h1>
           <p className="text-base sm:text-xl text-slate-500 max-w-2xl font-medium">
             Complete your transaction securely. Funds are transferred instantly.
           </p>
@@ -160,7 +165,8 @@ function UPIPaymentClean() {
 
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

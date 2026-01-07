@@ -1,11 +1,6 @@
 import { useState } from "react";
-import SettingToggle from "../components/SettingToggle";
-<<<<<<< HEAD
-import BottomNavigation from "../components/BottomNavigation";
 import { useNavigate } from "react-router-dom";
-
-=======
->>>>>>> a4941ed (chore: remove BottomNavigation component)
+import SettingToggle from "../components/SettingToggle";
 
 export default function PrivacySettings() {
   const [anonymousSharing, setAnonymousSharing] = useState(true);
@@ -19,7 +14,7 @@ export default function PrivacySettings() {
 
         {/* Header */}
         <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button className="text-3xl md:text-4xl lg:text-5xl cursor-pointer">←</button>
+          <button onClick={() => navigate('/')} aria-label="Go back" className="text-3xl md:text-4xl lg:text-5xl cursor-pointer">←</button>
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">
             Privacy & AI Settings
           </h1>

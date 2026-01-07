@@ -10,10 +10,12 @@ import TransactionRiskDetails from "./pages/TransactionRiskDetails";
 import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
 import FraudAnalytics from "./pages/FraudAnalytics";
+import Header from "./components/Header";
 
 function App() {
   return (
     <BrowserRouter>
+      <Header />
       <Routes>
         {/* Main Landing / Warning */}
         <Route path="/" element={<SecurityWarning />} />

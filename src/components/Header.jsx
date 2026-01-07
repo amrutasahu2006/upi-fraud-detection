@@ -1,25 +1,105 @@
-import { useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 export default function Header() {
-  const navigate = useNavigate();
 
   return (
-    <header className="flex items-center justify-between px-4 py-3 border-b bg-white">
-      {/* Left: Logo + Icon */}
-      <div className="flex items-center gap-2">
-        <div className="bg-blue-600 p-1 rounded">
-          <i className="fa-solid fa-shield text-white text-base md:text-lg lg:text-xl"></i>
+    <header className="bg-white border-b">
+      <div className="flex items-center pl-6 pr-4 md:pl-8 md:pr-6 py-3 justify-between">
+        {/* Left: Logo + Icon */}
+        <div className="flex items-center gap-2">
+          <div className="bg-blue-600 p-1 rounded">
+            <i className="fa-solid fa-shield text-white text-base md:text-lg lg:text-xl"></i>
+          </div>
+
+          <h1 className="text-lg md:text-xl lg:text-2xl font-semibold text-blue-600">
+            सुरक्षाPay
+          </h1>
         </div>
 
-        <h1 className="text-lg md:text-xl lg:text-2xl font-semibold text-blue-600">
-          सुरक्षाPay
-        </h1>
-      </div>
+        {/* Spacer to push tabs right */}
+        <div className="flex-1" />
 
-      {/* Right: Settings Button */}
-      <button className="text-gray-500 hover:text-gray-700 text-xl md:text-2xl lg:text-3xl cursor-pointer" onClick={() => navigate("/privacy-settings")}>
-        ⚙️
-      </button>
+        {/* Tabs aligned to right with increased spacing */}
+        <nav className="mr-4">
+          <div className="flex items-center gap-12">
+            <NavLink
+              to="/payment"
+              className={({ isActive }) =>
+                `flex flex-col items-center py-3 ${isActive ? "text-blue-600" : "text-gray-500"}`
+              }
+              aria-label="Pay"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 6h18M16 14l-1 3H9l-1-3" />
+              </svg>
+              <span className="text-xs mt-1">Pay</span>
+            </NavLink>
+
+            <NavLink
+              to="/safety"
+              className={({ isActive }) =>
+                `flex flex-col items-center py-3 ${isActive ? "text-blue-600" : "text-gray-500"}`
+              }
+              aria-label="Safety"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l8 4v6c0 5-3.582 9.74-8 11-4.418-1.26-8-6-8-11V6l8-4z" />
+              </svg>
+              <span className="text-xs mt-1">Safety</span>
+            </NavLink>
+
+            <NavLink
+            to="/risk-details"
+              className={({ isActive }) =>
+                `flex flex-col items-center py-3 ${isActive ? "text-blue-600" : "text-gray-500"}`
+              }
+              aria-label="Insights"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 13l4-4 4 4 4-8" />
+              </svg>
+              <span className="text-xs mt-1">Insights</span>
+            </NavLink>
+
+            <NavLink
+              to="/privacy-settings"
+              className={({ isActive }) =>
+                `flex flex-col items-center py-3 ${isActive ? "text-blue-600" : "text-gray-500"}`
+              }
+              aria-label="Settings"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.39 15.5A8 8 0 0112.5 20l-1.77-.35" />
+              </svg>
+              <span className="text-xs mt-1">Settings</span>
+            </NavLink>
+          </div>
+        </nav>
+
+        <div className="w-6" />
+      </div>
     </header>
   );
 }
