@@ -6,22 +6,34 @@ import { users } from "../data/users";
 
 export default function Safety() {
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-white">
-      <Header />
+    <div className="min-h-screen bg-gray-100 flex justify-center">
+      <div className="w-full max-w-screen-lg bg-white flex flex-col">
 
-      <main className="p-4 space-y-4">
-        <SafetyAlert />
+        {/* Header */}
+        <Header />
 
-        <h2 className="text-base font-semibold">Your UPI Circle</h2>
+        {/* Main Content */}
+        <main className="p-4 md:p-6 lg:p-8 space-y-6">
 
-        <div className="space-y-3">
-          {users.map((user) => (
-            <UserCard key={user.id} user={user} />
-          ))}
-        </div>
+          {/* Safety Alert */}
+          <SafetyAlert />
 
-        <ExpandCircle />
-      </main>
+          {/* Circle Heading */}
+          <h2 className="text-base md:text-lg lg:text-xl font-semibold">
+            Your UPI Circle
+          </h2>
+
+          {/* Users List */}
+          <div className="space-y-3 md:space-y-4 lg:space-y-5">
+            {users.map((user) => (
+              <UserCard key={user.id} user={user} />
+            ))}
+          </div>
+
+          {/* Expand Circle */}
+          <ExpandCircle />
+        </main>
+      </div>
     </div>
   );
 }
