@@ -102,16 +102,6 @@ const TransactionRiskDetails = () => {
                 <blockquote className="text-slate-500 leading-relaxed italic text-sm sm:text-base border-l-4 border-blue-100 pl-4 text-left">
                   "This transaction deviates significantly from your established payment patterns and requires immediate manual review."
                 </blockquote>
-                
-                {/* Button Stack: Optimized for mobile thumb reach */}
-                <div className="w-full space-y-3 mt-8">
-                    <button className="w-full bg-slate-900 text-white py-3.5 sm:py-4 rounded-xl font-bold hover:bg-slate-800 active:scale-95 transition-all shadow-lg text-sm sm:text-base">
-                        Flag as Fraud
-                    </button>
-                    <button className="w-full bg-white text-slate-600 py-3.5 sm:py-4 rounded-xl font-bold border border-slate-200 hover:bg-slate-50 active:scale-95 transition-all text-sm sm:text-base">
-                        I Recognize This
-                    </button>
-                </div>
               </div>
             </div>
           </div>
