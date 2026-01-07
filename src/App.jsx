@@ -4,6 +4,7 @@ import SecurityRecommendations from "./pages/SecurityRecommendations";
 import TransactionBlocked from "./pages/TransactionBlocked";
 import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
+import FraudAnalytics from "./pages/FraudAnalytics";
 
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/blocked" element={<TransactionBlocked />} />
         <Route path="/safety" element={<Safety />} />
         <Route path="/privacy-settings" element={<PrivacySettings />} />
+        <Route path="/fraud-analytics" element={<FraudAnalytics />} />
       </Routes>
     </BrowserRouter>
   );
