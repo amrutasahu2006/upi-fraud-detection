@@ -1,8 +1,11 @@
 import { useState } from "react";
 import SettingToggle from "../components/SettingToggle";
+<<<<<<< HEAD
 import BottomNavigation from "../components/BottomNavigation";
 import { useNavigate } from "react-router-dom";
 
+=======
+>>>>>>> a4941ed (chore: remove BottomNavigation component)
 
 export default function PrivacySettings() {
   const [anonymousSharing, setAnonymousSharing] = useState(true);
@@ -59,9 +62,6 @@ export default function PrivacySettings() {
             </p>
           </div>
         </main>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation />
       </div>
     </div>
   );

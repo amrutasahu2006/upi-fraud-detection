@@ -1,7 +1,6 @@
 import FilterPill from "../components/FilterPill";
 import StatCard from "../components/StatCard";
 import RecentFraudItem from "../components/RecentFraudItem";
-import BottomNavigation from "../components/BottomNavigation";
 
 export default function FraudAnalytics() {
   return (
@@ -109,9 +108,6 @@ export default function FraudAnalytics() {
           </div>
 
         </main>
-
-        {/* Bottom Navigation */}
-        <BottomNavigation />
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import BottomNavigation from "../components/BottomNavigation";
 
 function SecurityRecommendations() {
   const recommendations = [
@@ -134,9 +133,6 @@ function SecurityRecommendations() {
             ))}
           </div>
         </div>
-
-        {/* Footer Navigation Bar */}
-        <BottomNavigation />
       </div>
     </div>
   );
