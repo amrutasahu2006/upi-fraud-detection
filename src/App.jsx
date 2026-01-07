@@ -15,8 +15,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Main Landing / Chatbot */}
-        <Route path="/" element={<SecurityChatbot />} />
+        {/* Main Landing / Warning */}
+        <Route path="/" element={<SecurityWarning />} />
+        <Route path="/chatbot" element={<SecurityChatbot />} />
         
         {/* Security & Recommendations */}
         <Route path="/recommendations" element={<SecurityRecommendations />} />
@@ -28,7 +29,6 @@ function App() {
         
         {/* Transaction & Risk Flow */}
         <Route path="/payment" element={<UPIPayment />} />
-        <Route path="/warning" element={<SecurityWarning />} />
         <Route path="/blocked" element={<TransactionBlocked />} />
         <Route path="/risk-details" element={<TransactionRiskDetails />} />
       </Routes>

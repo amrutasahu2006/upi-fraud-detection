@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function SecurityChatbot() {
   const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleBlock = () => {
     // Handle block action
@@ -28,7 +30,7 @@ function SecurityChatbot() {
         {/* Header Section */}
         <div className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-2">
-            <button className="text-gray-600 hover:text-gray-900 transition-colors">
+            <button onClick={() => navigate('/')} className="text-gray-600 hover:text-gray-900 transition-colors">
               <svg
                 className="w-5 h-5 md:w-6 md:h-6"
                 fill="none"
