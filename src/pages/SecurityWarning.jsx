@@ -66,7 +66,7 @@ const SecurityWarning = () => {
 
             {/* Secondary Actions - Using Grid for Tablet/Desktop to save vertical space */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button onClick={() => navigate('/')} className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold">
+                <button onClick={() => navigate('/chatbot')} className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold">
                     <MessageCircle size={18} />
                     <span>Ask bot for help</span>
                 </button>

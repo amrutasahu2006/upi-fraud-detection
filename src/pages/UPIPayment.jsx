@@ -145,28 +145,6 @@ function UPIPaymentClean() {
               </div>
             </div>
 
-            {/* AI Security Widget */}
-            <div className="bg-[#0F172A] rounded-[2rem] p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
-              {/* Subtle Background Pattern */}
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
-              
-              <div className="bg-blue-500/10 w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 border border-blue-500/20 relative z-10">
-                <ShieldCheck size={28} className="text-blue-400" />
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 relative z-10">Suraksha AI</h3>
-              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6 relative z-10">
-                Analyzing this transaction in real-time to prevent fraud.
-              </p>
-              <div className="bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center space-x-3">
-                <div className="flex space-x-1">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className={`w-1 h-3 bg-blue-500 rounded-full animate-bounce`} style={{animationDelay: `${i*100}ms`}}></div>
-                    ))}
-                </div>
-                <span className="text-[10px] sm:text-xs font-bold tracking-widest text-blue-400 uppercase">Verifying Network...</span>
-              </div>
-            </div>
-
             {/* Safety Card */}
             <div className="bg-orange-50/30 border border-orange-100 rounded-[2rem] p-6 sm:p-8">
               <div className="flex items-start space-x-3 sm:space-x-4">
