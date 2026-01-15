@@ -1,9 +1,16 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X, MessageCircle, ShieldAlert } from "lucide-react";
+import { useTransaction } from "../context/TransactionContext";
+import AIRecommendationPanel from "../components/AIRecommendationPanel";
 
 const SecurityWarning = () => {
   const navigate = useNavigate();
+  const { riskAnalysis } = useTransaction();
+
+  // Use risk analysis data if available, otherwise show default high-risk scenario
+  const criticalRiskFactors = riskAnalysis?.riskFactors || ["blockVPA", "enable2FA", "suspiciousPattern"];
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16">
       {/* Responsive Width Strategy: 
@@ -74,6 +81,31 @@ const SecurityWarning = () => {
                     Proceed Anyway
                 </button>
             </div>
+          </div>
+
+          {/* AI Recommendations Section */}
+          <div className="mt-6 sm:mt-8">
+            <h3 className="font-bold text-lg text-slate-800 mb-3">
+              Immediate Actions Required
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Based on this high-risk transaction, take these critical security steps:
+            </p>
+            
+            <AIRecommendationPanel 
+              riskFactors={criticalRiskFactors}
+              maxRecommendations={3}
+              layout="list"
+              onAction={(rec) => {
+                console.log('Critical action:', rec.action);
+                // Handle urgent actions
+                if (rec.action === "Block VPA") {
+                  navigate('/blocked');
+                } else if (rec.action === "Enable 2FA") {
+                  navigate('/privacy-settings');
+                }
+              }}
+            />
           </div>
         </div>
       </div>

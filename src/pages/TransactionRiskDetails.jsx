@@ -1,8 +1,32 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Smartphone, MapPin, UserPlus, BarChart, ChevronRight, ShieldAlert } from "lucide-react";
+import { useTransaction } from "../context/TransactionContext";
+import AIRecommendationPanel from "../components/AIRecommendationPanel";
 
 const TransactionRiskDetails = () => {
+  const navigate = useNavigate();
+  const { currentTransaction, riskAnalysis } = useTransaction();
+
+  // Debug: Log the data with timestamp
+  console.log("==================================================");
+  console.log("⏰ Risk Details Page Loaded at:", new Date().toISOString());
+  console.log("🔍 Risk Analysis from Context:", JSON.stringify(riskAnalysis, null, 2));
+  console.log("💳 Transaction from Context:", JSON.stringify(currentTransaction, null, 2));
+  console.log("==================================================");
+
+  // If no risk analysis available, show default view
+  const displayRiskScore = riskAnalysis?.riskScore !== undefined ? riskAnalysis.riskScore : 75;
+  const displayRiskLevel = riskAnalysis?.riskLevel || "MEDIUM";
+  const displayRiskFactors = riskAnalysis?.riskFactors || ["newPayee", "highAmount", "unusualTime", "newDevice"];
+  const transactionAmount = currentTransaction?.amount || 25000;
+  const transactionId = riskAnalysis?.transactionId || "TRX-99281";
+
+  console.log("📊 Displaying to User:");
+  console.log("  Risk Score:", displayRiskScore + "%");
+  console.log("  Risk Level:", displayRiskLevel);
+  console.log("  Risk Factors:", displayRiskFactors);
+
   const riskFactors = [
   {
     icon: Clock,
@@ -26,8 +50,6 @@ const TransactionRiskDetails = () => {
   }
 ];
 
-const navigate = useNavigate();
-
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
@@ -42,7 +64,7 @@ const navigate = useNavigate();
         <main className="p-4 md:p-6 lg:p-8">
 
         <p className="text-slate-500 mt-2 text-sm sm:text-base">
-            Internal Security Analysis for Transaction ID: <span className="font-mono font-medium text-slate-700">#TRX-99281</span>
+            Internal Security Analysis for Transaction ID: <span className="font-mono font-medium text-slate-700">#{transactionId}</span>
         </p>
 
         {/* Layout Grid: 
@@ -97,21 +119,55 @@ const navigate = useNavigate();
                 <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">
                   AI Risk Probability
                 </h3>
-                <div className="text-5xl sm:text-6xl font-black text-slate-900 mb-4">92%</div>
+                <div className="text-5xl sm:text-6xl font-black text-slate-900 mb-4">{displayRiskScore}%</div>
 
                 {/* Responsive Progress Bar */}
                 <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden mb-6">
-                  <div className="h-full bg-red-500 rounded-full transition-all duration-1000" style={{ width: '92%' }}></div>
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      displayRiskScore >= 70 ? 'bg-red-500' : displayRiskScore >= 40 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`} 
+                    style={{ width: `${displayRiskScore}%` }}
+                  ></div>
                 </div>
 
                 <blockquote className="text-slate-500 leading-relaxed italic text-sm sm:text-base border-l-4 border-blue-100 pl-4 text-left">
-                  "This transaction deviates significantly from your established payment patterns and requires immediate manual review."
+                  {displayRiskLevel === "HIGH" 
+                    ? '"This transaction deviates significantly from your established payment patterns and requires immediate manual review."'
+                    : displayRiskLevel === "MEDIUM"
+                    ? '"This transaction shows some unusual patterns. Please review the recommendations below."'
+                    : '"Transaction appears normal but consider these security tips."'
+                  }
                 </blockquote>
               </div>
             </div>
           </div>
 
         </div>
+
+        {/* AI Recommendations Section */}
+        <div className="mt-8 lg:mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Recommended Security Actions
+          </h2>
+          <p className="text-gray-600 text-sm mb-6">
+            Based on the detected risk factors, here are AI-powered recommendations to secure your account:
+          </p>
+          
+          <AIRecommendationPanel 
+            riskFactors={displayRiskFactors}
+            maxRecommendations={4}
+            layout="grid"
+            onAction={(rec) => {
+              console.log('User clicked:', rec.action);
+              // You can add navigation or other actions here
+              if (rec.action === "Enable 2FA") {
+                navigate('/privacy-settings');
+              }
+            }}
+          />
+        </div>
+
         </main>
       </div>
     </div>

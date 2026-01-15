@@ -4,12 +4,16 @@ import {
   Shield, Paperclip, CreditCard, ShieldCheck, 
   ChevronRight, User, Info 
 } from "lucide-react";
+import { useTransaction } from "../context/TransactionContext";
+import { analyzeTransaction } from "../services/mockApi";
 
 function UPIPaymentClean() {
   const [selectedAmount, setSelectedAmount] = useState(500);
   const [upiId, setUpiId] = useState("");
   const [note, setNote] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
+  const { startTransaction, setAnalysisResult, setIsAnalyzing } = useTransaction();
 
   const amounts = [500, 1000, 2000, 5000];
   const quickContacts = [
@@ -17,6 +21,94 @@ function UPIPaymentClean() {
     { name: "Priya", upi: "priya@okicici", color: "bg-purple-100 text-purple-700" },
     { name: "Amit", upi: "amit@oksbi", color: "bg-blue-100 text-blue-700" },
   ];
+
+  // Handle payment submission with risk analysis
+  const handlePayment = async () => {
+    if (!upiId || !selectedAmount) {
+      alert("Please enter UPI ID and amount");
+      return;
+    }
+
+    setIsProcessing(true);
+    setIsAnalyzing(true);
+
+    // Detect if payee is new (not in quick contacts)
+    const isNewPayee = !quickContacts.some(c => c.upi === upiId);
+    
+    // Detect if amount is high
+    const isHighAmount = selectedAmount > 10000;
+    
+    // Detect if time is unusual (before 6 AM or after 10 PM)
+    const currentHour = new Date().getHours();
+    const isUnusualTime = currentHour < 6 || currentHour > 22;
+
+    // Create transaction data with proper risk factor detection
+    const transactionData = {
+      amount: selectedAmount,
+      recipient: {
+        name: upiId.split('@')[0],
+        upi: upiId,
+        isNewPayee: isNewPayee
+      },
+      note,
+      timestamp: new Date().toISOString(),
+      // Explicitly pass risk factors - IMPORTANT!
+      isNewPayee: isNewPayee,
+      isHighAmount: isHighAmount,
+      isNewDevice: false,
+      isUnusualTime: isUnusualTime,
+      isNewLocation: false
+    };
+
+    // Store transaction in context
+    startTransaction(transactionData);
+
+    try {
+      // Call backend API (mocked for now)
+      console.log("📤 Sending transaction for analysis:", transactionData);
+      const result = await analyzeTransaction(transactionData);
+      console.log("📥 Received risk analysis:", result);
+      
+      setIsAnalyzing(false);
+      setIsProcessing(false);
+
+      if (result.success) {
+        // Store analysis result in context
+        setAnalysisResult(result.data);
+        console.log("✅ Risk analysis data:", {
+          amount: result.data.amount || selectedAmount,
+          riskScore: result.data.riskScore,
+          riskLevel: result.data.riskLevel,
+          riskFactors: result.data.riskFactors
+        });
+
+        // Small delay to ensure context updates before navigation
+        setTimeout(() => {
+          // Always show Risk Details for medium/high risk so user can see recommendations
+          // Only show success for LOW risk
+          if (result.data.riskLevel === "HIGH" || result.data.riskLevel === "MEDIUM") {
+            // Show Risk Details page with recommendations
+            navigate('/risk-details');
+          } else {
+            // Low risk - show success
+            alert('Payment successful! ✅');
+            setUpiId("");
+            setSelectedAmount(500);
+            setNote("");
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Risk analysis failed:", error);
+      setIsProcessing(false);
+      setIsAnalyzing(false);
+      alert("Something went wrong. Please try again.");
+    }
+  };
+
+  const selectQuickContact = (contact) => {
+    setUpiId(contact.upi);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
@@ -109,8 +201,12 @@ function UPIPaymentClean() {
                 </div>
 
                 <div className="pt-4">
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-bold text-xl sm:text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.2)] transition-all active:scale-[0.98] cursor-pointer">
-                    Send ₹{selectedAmount?.toLocaleString()}
+                  <button 
+                    onClick={handlePayment}
+                    disabled={isProcessing || !upiId || !selectedAmount}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-bold text-xl sm:text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.2)] transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    {isProcessing ? "Analyzing..." : `Send ₹${selectedAmount?.toLocaleString()}`}
                   </button>
                   
                   <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -134,7 +230,11 @@ function UPIPaymentClean() {
               <h3 className="font-bold text-slate-900 text-lg sm:text-xl mb-4 sm:mb-6">Recent Recipients</h3>
               <div className="space-y-2 sm:space-y-3">
                 {quickContacts.map((contact) => (
-                  <button key={contact.name} className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 rounded-xl sm:rounded-2xl transition-all group border border-transparent hover:border-slate-100 cursor-pointer">
+                  <button 
+                    key={contact.name} 
+                    onClick={() => selectQuickContact(contact)}
+                    className="w-full flex items-center justify-between p-3 sm:p-4 hover:bg-slate-50 rounded-xl sm:rounded-2xl transition-all group border border-transparent hover:border-slate-100 cursor-pointer"
+                  >
                     <div className="flex items-center space-x-3 sm:space-x-4">
                       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-lg sm:text-xl ${contact.color}`}>
                         {contact.name[0]}

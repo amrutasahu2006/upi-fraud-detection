@@ -12,11 +12,15 @@ import PrivacySettings from "./pages/PrivacySettings";
 import FraudAnalytics from "./pages/FraudAnalytics";
 import Header from "./components/Header";
 
+// Transaction Context
+import { TransactionProvider } from "./context/TransactionContext";
+
 function App() {
   return (
     <BrowserRouter>
-      <Header />
-      <Routes>
+      <TransactionProvider>
+        <Header />
+        <Routes>
         {/* Main Landing / Warning */}
         <Route path="/" element={<SecurityWarning />} />
         <Route path="/chatbot" element={<SecurityChatbot />} />
@@ -34,6 +38,7 @@ function App() {
         <Route path="/blocked" element={<TransactionBlocked />} />
         <Route path="/risk-details" element={<TransactionRiskDetails />} />
       </Routes>
+      </TransactionProvider>
     </BrowserRouter>
   );
 }
