@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, Smartphone, MapPin, UserPlus, BarChart, ChevronRight, ShieldAlert } from "lucide-react";
+import { Clock, Smartphone, MapPin, UserPlus, BarChart, ChevronRight, ShieldAlert, Calendar, TrendingUp, Activity } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
 
@@ -21,6 +21,24 @@ const TransactionRiskDetails = () => {
   const displayRiskFactors = riskAnalysis?.riskFactors || ["newPayee", "highAmount", "unusualTime", "newDevice"];
   const transactionAmount = currentTransaction?.amount || 25000;
   const transactionId = riskAnalysis?.transactionId || "TRX-99281";
+  
+  // Extract time analysis data if available
+  const timeAnalysis = riskAnalysis?.analysis?.timeAnalysis;
+  const isUnusualTime = riskAnalysis?.analysis?.isUnusualTime || false;
+  
+  // Determine if time-based risk is present
+  const hasTimeRisk = displayRiskFactors.includes('unusualTime') || isUnusualTime;
+  
+  // Get time-based details
+  const timeRiskDetails = timeAnalysis ? {
+    isUnusual: timeAnalysis.isUnusual,
+    confidence: timeAnalysis.confidence,
+    reason: timeAnalysis.reason,
+    typicalHours: timeAnalysis.typicalHours || [],
+    currentHour: timeAnalysis.currentHour,
+    dayOfWeekName: timeAnalysis.dayOfWeekName,
+    riskScore: timeAnalysis.riskScore
+  } : null;
 
   console.log("📊 Displaying to User:");
   console.log("  Risk Score:", displayRiskScore + "%");
@@ -28,26 +46,23 @@ const TransactionRiskDetails = () => {
   console.log("  Risk Factors:", displayRiskFactors);
 
   const riskFactors = [
-  {
+  ...(hasTimeRisk ? [{
     icon: Clock,
     title: "Time Anomaly",
-    description: "Transaction occurred at an unusual time compared to your typical payment patterns."
-  },
-  {
+    description: timeRiskDetails ? 
+      `Transaction at ${timeRiskDetails.currentHour}:00 deviates from your typical ${timeRiskDetails.typicalHours.length > 0 ? timeRiskDetails.typicalHours.join(', ') : 'usage'} hours. ${timeRiskDetails.reason}` :
+      "Transaction occurred at an unusual time compared to your typical payment patterns."
+  }] : []),
+  ...(displayRiskFactors.includes('newDevice') ? [{
     icon: Smartphone,
     title: "Device Change",
     description: "Payment initiated from a device that hasn't been used for transactions before."
-  },
-  {
+  }] : []),
+  ...(displayRiskFactors.includes('newLocation') ? [{
     icon: MapPin,
     title: "Location Deviation",
     description: "Transaction location differs significantly from your usual payment locations."
-  },
-  {
-    icon: UserPlus,
-    title: "New Payee",
-    description: "First-time payment to this recipient, increasing potential fraud risk."
-  }
+  }] : []),
 ];
 
   return (
@@ -89,7 +104,7 @@ const TransactionRiskDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               {riskFactors.map((factor, index) => (
                 <div 
-                    key={index} 
+                    key={`${factor.title}-${index}`} 
                     className="group bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 hover:shadow-md hover:border-blue-400 transition-all duration-300"
                 >
                   <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors">

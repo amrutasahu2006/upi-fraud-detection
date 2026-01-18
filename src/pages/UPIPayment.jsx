@@ -5,6 +5,7 @@ import {
   ChevronRight, User, Info 
 } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
+import { useAuth } from "../context/AuthContext";
 import { analyzeTransaction } from "../services/mockApi";
 
 function UPIPaymentClean() {
@@ -14,6 +15,7 @@ function UPIPaymentClean() {
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const { startTransaction, setAnalysisResult, setIsAnalyzing } = useTransaction();
+  const { isAuthenticated, token } = useAuth();
 
   const amounts = [500, 1000, 2000, 5000];
   const quickContacts = [
@@ -82,15 +84,26 @@ function UPIPaymentClean() {
           riskFactors: result.data.riskFactors
         });
 
+        // Save transaction to database if authenticated
+        if (isAuthenticated && token) {
+          try {
+            await saveTransactionToDatabase(result.data, transactionData);
+          } catch (saveError) {
+            console.error("Failed to save transaction:", saveError);
+            // Don't block the flow if saving fails
+          }
+        }
+
         // Small delay to ensure context updates before navigation
         setTimeout(() => {
-          // Always show Risk Details for medium/high risk so user can see recommendations
-          // Only show success for LOW risk
-          if (result.data.riskLevel === "HIGH" || result.data.riskLevel === "MEDIUM") {
+          // Show Risk Details if there's a time anomaly or if risk level is medium/high
+          const hasTimeAnomaly = result.data.analysis?.isUnusualTime || result.data.riskFactors?.includes('unusualTime');
+          
+          if (hasTimeAnomaly || result.data.riskLevel === "HIGH" || result.data.riskLevel === "MEDIUM") {
             // Show Risk Details page with recommendations
             navigate('/risk-details');
           } else {
-            // Low risk - show success
+            // Low risk without time anomalies - show success
             alert('Payment successful! ✅');
             setUpiId("");
             setSelectedAmount(500);
@@ -108,6 +121,44 @@ function UPIPaymentClean() {
 
   const selectQuickContact = (contact) => {
     setUpiId(contact.upi);
+  };
+
+  // Save transaction to backend database
+  const saveTransactionToDatabase = async (analysisResult, transactionData) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: transactionData.amount,
+          payee: transactionData.recipient?.name || upiId.split('@')[0],
+          payeeUpiId: transactionData.recipient?.upi || upiId,
+          purpose: note || '',
+          timestamp: transactionData.timestamp,
+          deviceInfo: {
+            userAgent: navigator.userAgent,
+            ipAddress: 'client-ip', // Would be captured by backend
+            deviceId: 'browser-device' // Could be enhanced with fingerprinting
+          }
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        console.log('✅ Transaction saved to database:', result.data.transactionId);
+      } else {
+        console.error('❌ Failed to save transaction:', result.message);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Network error saving transaction:', error);
+      throw error;
+    }
   };
 
   return (

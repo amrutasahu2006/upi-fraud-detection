@@ -1,8 +1,8 @@
 /**
- * MOCK API SERVICE - Simulates Backend Risk Analysis
+ * REAL API SERVICE - Actual Backend Risk Analysis
  * 
- * This service mocks the backend API responses for risk analysis.
- * Replace with actual fetch() calls when backend is ready.
+ * This service now connects to the real backend API for risk analysis.
+ * Uses the new /api/analysis/analyze endpoint with time-based detection.
  */
 
 // Demo Scenario Configuration
@@ -30,6 +30,48 @@ export const DEMO_SCENARIO = {
  * @returns {Promise<Object>} Risk analysis result
  */
 export async function analyzeTransaction(transactionData) {
+  try {
+    // Get auth token from localStorage
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    const response = await fetch('http://localhost:5000/api/analysis/analyze', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(transactionData)
+    });
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || 'Analysis failed');
+    }
+    
+    console.log("🔬 Real-time Risk Analysis Result:", result.data);
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Transaction analysis error:', error);
+    
+    // Fallback to mock analysis if backend is unavailable
+    console.warn('Using fallback mock analysis due to backend error');
+    return await mockAnalyzeTransaction(transactionData);
+  }
+}
+
+/**
+ * Mock analysis function as fallback
+ * @param {Object} transactionData - Transaction details
+ * @returns {Promise<Object>} Mock risk analysis result
+ */
+async function mockAnalyzeTransaction(transactionData) {
   // Simulate API delay
   await new Promise(resolve => setTimeout(resolve, 800));
   

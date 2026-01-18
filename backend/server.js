@@ -10,6 +10,9 @@ dotenv.config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
+const analysisRoutes = require('./routes/analysisRoutes');
+const alertRoutes = require('./routes/alertRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -35,6 +38,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/analysis', analysisRoutes);
+app.use('/api/alerts', alertRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
