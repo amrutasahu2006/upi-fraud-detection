@@ -1,15 +1,30 @@
 /**
  * Transaction Context - Manages transaction state across the app
- * 
+ *
  * This provides a centralized way to share transaction data
  * between different pages in the flow.
  */
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const TransactionContext = createContext();
 
 export function TransactionProvider({ children }) {
+  // Load location from localStorage on mount
+  const [userLocation, setUserLocationState] = useState(() => {
+    const saved = localStorage.getItem('userLocation');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const setUserLocation = (location) => {
+    setUserLocationState(location);
+    if (location) {
+      localStorage.setItem('userLocation', JSON.stringify(location));
+    } else {
+      localStorage.removeItem('userLocation');
+    }
+  };
+
   const [currentTransaction, setCurrentTransaction] = useState(null);
   const [riskAnalysis, setRiskAnalysis] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -27,14 +42,17 @@ export function TransactionProvider({ children }) {
   const clearTransaction = () => {
     setCurrentTransaction(null);
     setRiskAnalysis(null);
+    setUserLocation(null);
   };
 
   const value = {
     currentTransaction,
     riskAnalysis,
     isAnalyzing,
+    userLocation,
     startTransaction,
     setAnalysisResult,
+    setUserLocation,
     clearTransaction,
     setIsAnalyzing
   };

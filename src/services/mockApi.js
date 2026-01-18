@@ -77,21 +77,37 @@ async function mockAnalyzeTransaction(transactionData) {
   
   const {
     amount,
-    isNewPayee = false,
+    recipient,
+    location,
     isHighAmount = false,
-    isNewDevice = false,
     isUnusualTime = false,
-    isNewLocation = false
   } = transactionData;
+
+  const isNewPayee = !recipient.upi.includes('rahul') && !recipient.upi.includes('priya') && !recipient.upi.includes('amit');
   
-  console.log("🔬 Risk Analysis Calculation:");
+  console.log("🔬 MOCK Risk Analysis Calculation:");
   console.log("  - Amount:", amount);
   console.log("  - isNewPayee:", isNewPayee);
-  console.log("  - isHighAmount:", isHighAmount);
-  console.log("  - isNewDevice:", isNewDevice);
-  console.log("  - isUnusualTime:", isUnusualTime);
-  console.log("  - isNewLocation:", isNewLocation);
   
+  // --- Mock Geocoding ---
+  let city = "Unknown City";
+  let state = "Unknown State";
+  if (location && location.latitude > 18.9 && location.latitude < 19.2 && location.longitude > 72.8 && location.longitude < 73.0) {
+    city = "Mumbai";
+    state = "Maharashtra";
+  } else if (location && location.latitude > 28.4 && location.latitude < 28.8 && location.longitude > 76.9 && location.longitude < 77.3) {
+    city = "Delhi";
+    state = "Delhi";
+  } else if (location && location.latitude > 12.8 && location.latitude < 13.1 && location.longitude > 77.5 && location.longitude < 77.7) {
+    city = "Bangalore";
+    state = "Karnataka";
+  } else if (location && location.latitude > 12.9 && location.latitude < 13.2 && location.longitude > 80.2 && location.longitude < 80.4) {
+    city = "Chennai";
+    state = "Tamil Nadu";
+  }
+
+  const currentLocation = { ...location, city, state };
+
   // Calculate risk score based on factors
   let riskScore = 0;
   const detectedFactors = [];
@@ -99,66 +115,50 @@ async function mockAnalyzeTransaction(transactionData) {
   if (isNewPayee) {
     riskScore += 25;
     detectedFactors.push("newPayee");
-    console.log("  ➕ New Payee: +25 (Total: " + riskScore + ")");
   }
   
   if (isHighAmount || amount > 10000) {
     riskScore += 30;
     detectedFactors.push("highAmount");
-    console.log("  ➕ High Amount: +30 (Total: " + riskScore + ")");
-  }
-  
-  if (isNewDevice) {
-    riskScore += 25;
-    detectedFactors.push("newDevice");
-    console.log("  ➕ New Device: +25 (Total: " + riskScore + ")");
   }
   
   if (isUnusualTime) {
     riskScore += 15;
     detectedFactors.push("unusualTime");
-    console.log("  ➕ Unusual Time: +15 (Total: " + riskScore + ")");
   }
   
-  if (isNewLocation) {
-    riskScore += 15;
-    detectedFactors.push("newLocation");
-    console.log("  ➕ New Location: +15 (Total: " + riskScore + ")");
-  }
-  
-  console.log("📊 Final Risk Score:", riskScore);
-  
-  // Add general security recommendations for medium+ risk
-  if (riskScore >= 50) {
-    detectedFactors.push("enable2FA");
-  }
-  
-  if (riskScore >= 70) {
-    detectedFactors.push("blockVPA");
-  }
-  
+  const finalRiskScore = Math.min(riskScore, 100);
+
   // Determine risk level
   let riskLevel = "LOW";
-  if (riskScore >= 70) riskLevel = "HIGH";
-  else if (riskScore >= 40) riskLevel = "MEDIUM";
+  if (finalRiskScore >= 70) riskLevel = "HIGH";
+  else if (finalRiskScore >= 40) riskLevel = "MEDIUM";
+
+  const riskAnalysis = {
+    totalRiskScore: finalRiskScore,
+    riskFactors: detectedFactors,
+    shouldBlock: finalRiskScore >= 80,
+    shouldWarn: finalRiskScore >= 40 && finalRiskScore < 80,
+    riskLevel: riskLevel,
+    analysis: {
+      timeAnalysis: { isUnusual: isUnusualTime, riskScore: isUnusualTime ? 15 : 0 },
+      amountAnalysis: { isAnomalous: isHighAmount, riskScore: isHighAmount ? 30 : 0 },
+      recipientAnalysis: { isNewPayee: isNewPayee, riskScore: isNewPayee ? 25 : 0 },
+      locationAnalysis: { isNewLocation: false, riskScore: 0, currentLocation: currentLocation, reason: "Real-time GPS analysis." },
+    }
+  };
   
   return {
     success: true,
     data: {
-      transactionId: `TRX-${Date.now()}`,
-      riskScore: Math.min(riskScore, 100),
-      riskLevel,
+      transactionId: `TRX-MOCK-${Date.now()}`,
+      riskScore: finalRiskScore,
+      riskLevel: riskLevel,
       riskFactors: detectedFactors,
-      shouldBlock: riskScore >= 80,
+      shouldBlock: finalRiskScore >= 80,
+      shouldWarn: finalRiskScore >= 40,
       timestamp: new Date().toISOString(),
-      analysis: {
-        isNewPayee,
-        isHighAmount: amount > 10000,
-        isNewDevice,
-        isUnusualTime,
-        isNewLocation,
-        amount
-      }
+      analysis: riskAnalysis.analysis
     }
   };
 }

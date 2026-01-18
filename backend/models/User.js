@@ -1,5 +1,7 @@
+
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { reverseGeocode } = require('../utils/geocoding');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -53,6 +55,10 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date
   },
+  knownDevices: {
+    type: [String],
+    default: []
+  },
   transactions: [{
     transactionId: {
       type: String,
@@ -103,7 +109,7 @@ const userSchema = new mongoose.Schema({
     },
     riskFactors: [{
       type: String,
-      enum: ['newPayee', 'highAmount', 'newDevice', 'unusualTime', 'newLocation']
+      enum: ['newPayee', 'highAmount', 'newDevice', 'unusualTime', 'newLocation', 'locationUnavailable', 'amountAnomaly', 'rarePayee']
     }],
     isBlocked: {
       type: Boolean,
@@ -117,6 +123,15 @@ const userSchema = new mongoose.Schema({
       userAgent: String,
       ipAddress: String,
       deviceId: String
+    },
+    location: {
+      latitude: Number,
+      longitude: Number,
+      accuracy: Number,
+      city: String,
+      state: String,
+      country: String,
+      timestamp: Date
     }
   }]
 }, {
@@ -151,7 +166,8 @@ userSchema.methods.addTransaction = function(transactionData) {
     riskFactors: transactionData.riskFactors || [],
     isBlocked: transactionData.isBlocked || false,
     blockedReason: transactionData.blockedReason || '',
-    deviceInfo: transactionData.deviceInfo || {}
+    deviceInfo: transactionData.deviceInfo || {},
+    location: transactionData.location || null
   };
   
   // Set hour and dayOfWeek
@@ -316,6 +332,225 @@ userSchema.methods.calculateTimeRisk = function(transactionTime, amount = 0) {
 userSchema.methods.getDayName = function(dayIndex) {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   return days[dayIndex];
+};
+
+// Analyze amount patterns for anomaly detection
+userSchema.methods.analyzeAmountPatterns = function() {
+  const AmountAnomalyDetector = require('../services/AmountAnomalyDetector');
+  const detector = new AmountAnomalyDetector();
+  return detector.analyzeAmountPatterns(this.transactions.filter(tx => tx.status === 'completed'));
+};
+
+// Detect amount anomalies
+userSchema.methods.detectAmountAnomaly = function(amount) {
+  const AmountAnomalyDetector = require('../services/AmountAnomalyDetector');
+  const detector = new AmountAnomalyDetector();
+  return detector.detectAnomaly(amount, this.transactions.filter(tx => tx.status === 'completed'));
+};
+
+// Build recipient profiles
+userSchema.methods.buildRecipientProfiles = function() {
+  const RecipientProfiler = require('../services/RecipientProfiler');
+  const profiler = new RecipientProfiler();
+  return profiler.buildRecipientProfiles(this.transactions.filter(tx => tx.status === 'completed'));
+};
+
+// Analyze recipient for transaction
+userSchema.methods.analyzeRecipient = function(payeeUpiId, payeeName) {
+  const RecipientProfiler = require('../services/RecipientProfiler');
+  const profiler = new RecipientProfiler();
+  const profiles = profiler.buildRecipientProfiles(this.transactions.filter(tx => tx.status === 'completed'));
+  return profiler.analyzeRecipient(payeeUpiId, payeeName, profiles);
+};
+
+// Analyze location for transaction
+userSchema.methods.analyzeLocation = async function(locationData) {
+  // If no location data provided, treat as unavailable
+  if (!locationData || !locationData.latitude || !locationData.longitude) {
+    return {
+      isNewLocation: false,
+      isLocationUnavailable: true,
+      riskScore: 20,
+      reason: "Location data unavailable - GPS access denied or location services disabled.",
+      confidence: 1,
+      currentLocation: null,
+      typicalLocations: []
+    };
+  }
+
+  const currentLat = parseFloat(locationData.latitude);
+  const currentLng = parseFloat(locationData.longitude);
+
+  console.log(`🔍 Analyzing location: lat=${currentLat}, lng=${currentLng}`);
+
+  // --- Real-time Reverse Geocoding ---
+  let city = "Unknown City";
+  let state = "Unknown State";
+  let country = "Unknown Country";
+
+  try {
+    const geocodingResult = await reverseGeocode(currentLat, currentLng);
+    city = geocodingResult.city;
+    state = geocodingResult.state;
+    country = geocodingResult.country;
+    console.log(`✅ Real-time geocoding: ${city}, ${state}, ${country}`);
+  } catch (error) {
+    console.error('❌ Geocoding failed, using fallback:', error.message);
+    // Fallback to simulation if API fails
+    if (currentLat > 15 && currentLat < 25 && currentLng > 65 && currentLng < 85) {
+      city = "Mumbai";
+      state = "Maharashtra";
+      country = "India";
+    }
+  }
+
+  // Get transactions with location data from last 90 days
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+  const recentTransactions = this.transactions.filter(tx =>
+    new Date(tx.timestamp) >= cutoffDate &&
+    tx.status === 'completed' &&
+    tx.location &&
+    tx.location.latitude &&
+    tx.location.longitude
+  );
+
+  // If no location history, any location is considered new
+  if (recentTransactions.length === 0) {
+    return {
+      isNewLocation: true,
+      isLocationUnavailable: false,
+      riskScore: 15,
+      reason: `First transaction with location data from ${city}, ${state}.`,
+      confidence: 0.5,
+      currentLocation: { latitude: currentLat, longitude: currentLng, city, state, accuracy: locationData.accuracy },
+      typicalLocations: []
+    };
+  }
+
+  // Calculate distance to each historical location
+  const locationDistances = recentTransactions.map(tx => {
+    const distance = this.calculateDistance(
+      currentLat, currentLng,
+      tx.location.latitude, tx.location.longitude
+    );
+    return { distance, location: tx.location, timestamp: tx.timestamp };
+  });
+
+  locationDistances.sort((a, b) => a.distance - b.distance);
+
+  const isWithinTypicalArea = locationDistances.some(loc => loc.distance <= 50);
+  const isNewLocation = !isWithinTypicalArea;
+  
+  // Build list of typical locations
+  const locationCounts = {};
+  recentTransactions.forEach(tx => {
+    const key = `${tx.location.city || 'Unknown'}-${tx.location.state || 'Unknown'}`;
+    locationCounts[key] = (locationCounts[key] || 0) + 1;
+  });
+
+  const typicalLocations = Object.entries(locationCounts)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 3)
+    .map(([key, count]) => ({
+      location: key,
+      frequency: count,
+      percentage: Math.round((count / recentTransactions.length) * 100)
+    }));
+
+  return {
+    isNewLocation,
+    isLocationUnavailable: false,
+    riskScore: isNewLocation ? 15 : 0,
+    reason: isNewLocation ?
+      `Location ${city}, ${state} is outside typical transaction areas.` :
+      `Location within typical transaction area.`,
+    confidence: Math.min(recentTransactions.length / 10, 1),
+    currentLocation: { latitude: currentLat, longitude: currentLng, city, state, accuracy: locationData.accuracy },
+    typicalLocations,
+    nearestDistance: locationDistances[0]?.distance || null
+  };
+};
+
+// Helper method to calculate distance between two coordinates (Haversine formula)
+userSchema.methods.calculateDistance = function(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+};
+
+userSchema.methods.calculateComprehensiveRisk = async function(transactionData) {
+  let totalRiskScore = 0;
+  const riskFactors = [];
+
+  // Time-based risk (existing)
+  const timeAnalysis = this.isUnusualTransactionTime(new Date(transactionData.timestamp || new Date()));
+  if (timeAnalysis.isUnusual) {
+    totalRiskScore += this.calculateTimeRisk(new Date(transactionData.timestamp || new Date()), transactionData.amount);
+    riskFactors.push('unusualTime');
+  }
+
+  // Amount-based risk (new)
+  const amountAnalysis = this.detectAmountAnomaly(transactionData.amount);
+  if (amountAnalysis.isAnomalous) {
+    totalRiskScore += amountAnalysis.riskScore;
+    riskFactors.push('amountAnomaly');
+  }
+
+  // Recipient-based risk (new)
+  const recipientAnalysis = this.analyzeRecipient(transactionData.payeeUpiId, transactionData.payee);
+  if (recipientAnalysis.isNewPayee) {
+    totalRiskScore += 25;
+    riskFactors.push('newPayee');
+  } else if (recipientAnalysis.isRarePayee) {
+    totalRiskScore += 15;
+    riskFactors.push('rarePayee');
+  }
+
+  // Location-based risk (new)
+  const locationAnalysis = await this.analyzeLocation(transactionData.location);
+  if (locationAnalysis.isNewLocation) {
+    totalRiskScore += locationAnalysis.riskScore;
+    riskFactors.push('newLocation');
+  }
+  if (locationAnalysis.isLocationUnavailable) {
+    totalRiskScore += locationAnalysis.riskScore;
+    riskFactors.push('locationUnavailable');
+  }
+
+  // High amount risk (existing logic)
+  if (transactionData.amount > 10000) {
+    totalRiskScore += 30;
+    riskFactors.push('highAmount');
+  }
+
+  // Other factors (existing)
+  if (transactionData.isNewDevice) {
+    totalRiskScore += 25;
+    riskFactors.push('newDevice');
+  }
+
+  const finalRiskScore = Math.min(totalRiskScore, 100);
+
+  return {
+    totalRiskScore: finalRiskScore,
+    riskFactors: [...new Set(riskFactors)], // Remove duplicates
+    shouldBlock: finalRiskScore >= 80,
+    shouldWarn: finalRiskScore >= 40 && finalRiskScore < 80,
+    analysis: {
+      timeAnalysis,
+      amountAnalysis,
+      recipientAnalysis,
+      locationAnalysis
+    }
+  };
 };
 
 // Index for performance

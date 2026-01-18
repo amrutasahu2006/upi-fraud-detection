@@ -4,105 +4,98 @@ const { protect } = require('../middleware/auth');
 const User = require('../models/User');
 
 // @route   POST /api/transactions/analyze
-// @desc    Analyze transaction risk in real-time
+// @desc    Analyze transaction risk in real-time using AI-driven behavior fingerprinting
 // @access  Private
 router.post('/analyze', protect, async (req, res) => {
   try {
     const {
       amount,
-      recipient,
-      isNewPayee = false,
-      isHighAmount = false,
-      isNewDevice = false,
-      isNewLocation = false,
+      recipient, // object with name, upi
+      note,
       timestamp = new Date().toISOString(),
-      purpose = ''
+      location, // object with lat, long, etc.
+      deviceId, // string
+      isHighAmount, // from frontend
+      isUnusualTime // from frontend
     } = req.body;
 
-    // Validate required fields
-    if (!amount) {
-      return res.status(400).json({
-        success: false,
-        message: 'Amount is required for risk analysis'
-      });
+    // --- Basic Validation ---
+    if (!amount || !recipient || !recipient.upi) {
+      return res.status(400).json({ success: false, message: 'Amount and recipient UPI ID are required' });
+    }
+    if (!deviceId) {
+      return res.status(400).json({ success: false, message: 'Device ID is required for security analysis' });
     }
 
-    // Get user for pattern analysis
+    // --- Get User ---
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    // Perform time-based analysis using user's embedded methods
-    const timeAnalysis = user.isUnusualTransactionTime(new Date(timestamp));
-    const timeRiskScore = user.calculateTimeRisk(new Date(timestamp), parseFloat(amount));
-
-    // Calculate risk score based on all factors
-    let riskScore = 0;
-    const detectedFactors = [];
-
-    if (isNewPayee) {
-      riskScore += 25;
-      detectedFactors.push("newPayee");
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (isHighAmount || amount > 10000) {
-      riskScore += 30;
-      detectedFactors.push("highAmount");
+    // --- Device Analysis (with defensive check) ---
+    if (!user.knownDevices) {
+      user.knownDevices = [];
     }
-
+    const isNewDevice = !user.knownDevices.includes(deviceId);
     if (isNewDevice) {
-      riskScore += 25;
-      detectedFactors.push("newDevice");
+      user.knownDevices.push(deviceId);
+      // Keep list to a reasonable size, e.g., 10
+      if (user.knownDevices.length > 10) {
+        user.knownDevices.shift();
+      }
     }
 
-    // Add time-based risk
-    if (timeAnalysis.isUnusual) {
-      riskScore += timeRiskScore;
-      detectedFactors.push("unusualTime");
-    }
+    // --- Prepare Data for Model Methods ---
+    const transactionDataForAnalysis = {
+      amount: parseFloat(amount),
+      payee: recipient.name,
+      payeeUpiId: recipient.upi,
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      isNewDevice, // Use calculated value
+      location, // Pass full location object
+      // Pass other frontend-detected factors if needed by comprehensive analysis
+      isHighAmount,
+      isUnusualTime,
+      deviceInfo: { deviceId }
+    };
 
-    if (isNewLocation) {
-      riskScore += 15;
-      detectedFactors.push("newLocation");
-    }
+    // --- Comprehensive Risk Calculation ---
+    const comprehensiveRisk = await user.calculateComprehensiveRisk(transactionDataForAnalysis);
 
-    // Add general security recommendations for medium+ risk
-    if (riskScore >= 50) {
-      detectedFactors.push("enable2FA");
-    }
+    // --- Add Transaction to User History ---
+    const savedTransaction = user.addTransaction({
+      ...transactionDataForAnalysis,
+      riskScore: comprehensiveRisk.totalRiskScore,
+      riskFactors: comprehensiveRisk.riskFactors,
+      status: comprehensiveRisk.shouldBlock ? 'blocked' : 'completed',
+      blockedReason: comprehensiveRisk.shouldBlock ? 'High risk score detected by automated system.' : ''
+    });
 
-    if (riskScore >= 70) {
-      detectedFactors.push("blockVPA");
-    }
+    // --- Save User (updates transaction history and known devices) ---
+    await user.save();
 
-    // Determine risk level
+    // --- Prepare Response ---
     let riskLevel = "LOW";
-    if (riskScore >= 70) riskLevel = "HIGH";
-    else if (riskScore >= 40) riskLevel = "MEDIUM";
+    if (comprehensiveRisk.totalRiskScore >= 80) riskLevel = "CRITICAL";
+    else if (comprehensiveRisk.totalRiskScore >= 60) riskLevel = "HIGH";
+    else if (comprehensiveRisk.totalRiskScore >= 40) riskLevel = "MEDIUM";
 
-    // Prepare analysis result
     const analysisResult = {
-      transactionId: `TRX-${Date.now()}`,
-      riskScore: Math.min(riskScore, 100),
+      transactionId: savedTransaction.transactionId,
+      riskScore: comprehensiveRisk.totalRiskScore,
       riskLevel,
-      riskFactors: [...new Set(detectedFactors)], // Remove duplicates
-      shouldBlock: riskScore >= 80,
+      riskFactors: comprehensiveRisk.riskFactors,
+      shouldBlock: comprehensiveRisk.shouldBlock,
+      shouldWarn: comprehensiveRisk.totalRiskScore >= 40,
       timestamp: new Date().toISOString(),
       analysis: {
-        isNewPayee,
-        isHighAmount: amount > 10000,
-        isNewDevice,
-        isUnusualTime: timeAnalysis.isUnusual,
-        isNewLocation,
-        amount: parseFloat(amount),
-        timeAnalysis: {
-          ...timeAnalysis,
-          riskScore: timeRiskScore
-        }
+        ...comprehensiveRisk.analysis,
+        // Override device analysis with our calculated value
+        device: {
+          isNewDevice,
+          riskScore: isNewDevice ? 25 : 0
+        },
       }
     };
 
@@ -115,7 +108,11 @@ router.post('/analyze', protect, async (req, res) => {
     console.error('Transaction analysis error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during transaction analysis'
+      message: 'Server error during transaction analysis',
+      error: {
+        message: error.message,
+        stack: error.stack,
+      }
     });
   }
 });

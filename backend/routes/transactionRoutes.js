@@ -3,6 +3,35 @@ const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
+// Helper function to generate recommendations based on risk analysis
+function generateRecommendations(riskAnalysis) {
+  const recommendations = [];
+
+  if (riskAnalysis.totalRiskScore >= 80) {
+    recommendations.push("Transaction blocked due to critical risk level");
+    recommendations.push("Contact your bank immediately");
+  } else if (riskAnalysis.totalRiskScore >= 60) {
+    recommendations.push("High risk transaction - verify recipient details");
+    recommendations.push("Consider cancelling this transaction");
+  } else if (riskAnalysis.totalRiskScore >= 40) {
+    recommendations.push("Medium risk detected - double-check transaction details");
+  }
+
+  if (riskAnalysis.riskFactors.includes('newPayee')) {
+    recommendations.push("New recipient detected - verify UPI ID carefully");
+  }
+
+  if (riskAnalysis.riskFactors.includes('amountAnomaly')) {
+    recommendations.push("Transaction amount is unusual for your patterns");
+  }
+
+  if (riskAnalysis.riskFactors.includes('unusualTime')) {
+    recommendations.push("Transaction timing is unusual for your patterns");
+  }
+
+  return recommendations;
+}
+
 // @route   POST /api/transactions
 // @desc    Create new transaction
 // @access  Private
@@ -14,7 +43,8 @@ router.post('/', protect, async (req, res) => {
       payeeUpiId,
       purpose,
       timestamp,
-      deviceInfo
+      deviceInfo,
+      location // Extract location from request body
     } = req.body;
 
     // Validate required fields
@@ -24,11 +54,19 @@ router.post('/', protect, async (req, res) => {
         message: 'Amount, payee, and payeeUpiId are required'
       });
     }
+    
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     // Generate unique transaction ID
     const transactionId = `TRX-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    const transactionData = {
+    let transactionData = {
       userId: req.user.id,
       transactionId,
       amount: parseFloat(amount),
@@ -40,19 +78,28 @@ router.post('/', protect, async (req, res) => {
         userAgent: req.headers['user-agent'],
         ipAddress: req.ip || req.connection.remoteAddress,
         deviceId: req.headers['device-id'] || 'unknown'
-      }
+      },
+      location: location || null // Add location to transaction data
     };
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
     
+    // Perform comprehensive risk analysis
+    const riskAnalysis = await user.calculateComprehensiveRisk(transactionData);
+    
+    // Add risk analysis results to transaction data
+    transactionData.riskScore = riskAnalysis.totalRiskScore;
+    transactionData.riskFactors = riskAnalysis.riskFactors;
+    transactionData.isBlocked = riskAnalysis.shouldBlock;
+    transactionData.blockedReason = riskAnalysis.shouldBlock ? 'High risk score' : '';
+    
+    // If the location was analyzed, add the determined city/state back
+    if (riskAnalysis.analysis.locationAnalysis && riskAnalysis.analysis.locationAnalysis.currentLocation) {
+        transactionData.location = riskAnalysis.analysis.locationAnalysis.currentLocation;
+    }
+
     const transaction = user.addTransaction(transactionData);
     await user.save();
+    
+    const recommendations = generateRecommendations(riskAnalysis);
 
     res.status(201).json({
       success: true,
@@ -61,7 +108,9 @@ router.post('/', protect, async (req, res) => {
         transactionId: transaction.transactionId,
         amount: transaction.amount,
         payee: transaction.payee,
-        timestamp: transaction.timestamp
+        timestamp: transaction.timestamp,
+        riskAnalysis,
+        recommendations
       }
     });
 
