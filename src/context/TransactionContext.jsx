@@ -40,9 +40,11 @@ export function TransactionProvider({ children }) {
   };
 
   const clearTransaction = () => {
+    console.log("🧹 Clearing transaction context");
     setCurrentTransaction(null);
     setRiskAnalysis(null);
-    setUserLocation(null);
+    // Don't clear userLocation as it's persistent across transactions
+    setIsAnalyzing(false);
   };
 
   const value = {

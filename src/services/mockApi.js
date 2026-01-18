@@ -38,7 +38,7 @@ export async function analyzeTransaction(transactionData) {
       throw new Error('Authentication required');
     }
     
-    const response = await fetch('http://localhost:5000/api/analysis/analyze', {
+    const response = await fetch('http://localhost:5000/api/transactions/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -141,10 +141,53 @@ async function mockAnalyzeTransaction(transactionData) {
     shouldWarn: finalRiskScore >= 40 && finalRiskScore < 80,
     riskLevel: riskLevel,
     analysis: {
-      timeAnalysis: { isUnusual: isUnusualTime, riskScore: isUnusualTime ? 15 : 0 },
-      amountAnalysis: { isAnomalous: isHighAmount, riskScore: isHighAmount ? 30 : 0 },
-      recipientAnalysis: { isNewPayee: isNewPayee, riskScore: isNewPayee ? 25 : 0 },
-      locationAnalysis: { isNewLocation: false, riskScore: 0, currentLocation: currentLocation, reason: "Real-time GPS analysis." },
+      timeAnalysis: {
+        isUnusual: isUnusualTime,
+        riskScore: isUnusualTime ? 15 : 0,
+        confidence: 0.8,
+        reason: isUnusualTime ? "Transaction outside typical hours" : "Normal transaction time",
+        typicalHours: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20],
+        currentHour: new Date().getHours(),
+        dayOfWeekName: new Date().toLocaleDateString('en-US', { weekday: 'long' })
+      },
+      amountAnalysis: {
+        isAnomalous: isHighAmount,
+        riskScore: isHighAmount ? 30 : 0,
+        confidence: 0.9,
+        reason: isHighAmount ? "Amount significantly higher than average" : "Amount within normal range",
+        deviation: isHighAmount ? 2.5 : 0.1,
+        patterns: {
+          hasEnoughData: true,
+          averageAmount: 1500,
+          medianAmount: 1200
+        }
+      },
+      recipientAnalysis: {
+        isNewPayee: isNewPayee,
+        isRarePayee: false,
+        riskScore: isNewPayee ? 25 : 0,
+        reason: isNewPayee ? "First-time recipient" : "Known recipient",
+        profile: isNewPayee ? null : {
+          transactionCount: 5,
+          averageAmount: 800,
+          lastTransaction: new Date(Date.now() - 86400000).toISOString()
+        }
+      },
+      device: {
+        isNewDevice: false,
+        riskScore: 0
+      },
+      locationAnalysis: {
+        isNewLocation: false,
+        isLocationUnavailable: false,
+        riskScore: 0,
+        reason: "Location within typical transaction area",
+        currentLocation: currentLocation,
+        typicalLocations: [
+          { location: "Mumbai-Maharashtra", frequency: 8, percentage: 80 }
+        ],
+        nearestDistance: 2.5
+      }
     }
   };
   

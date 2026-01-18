@@ -19,47 +19,33 @@ const TransactionRiskDetails = () => {
   console.log("📍 User Location from Context:", JSON.stringify(userLocation, null, 2));
   console.log("==================================================");
 
-  // Use actual data from backend, with fallbacks only if no data
-  const rawRiskScore = riskAnalysis?.riskScore ?? 0;
+  // Use actual data from backend - always trust backend calculations
+  const displayRiskScore = riskAnalysis?.riskScore ?? 0;
   const displayRiskLevel = riskAnalysis?.riskLevel ?? "UNKNOWN";
   const displayRiskFactors = riskAnalysis?.riskFactors ?? [];
   const transactionAmount = currentTransaction?.amount ?? 0;
   const transactionId = riskAnalysis?.transactionId ?? currentTransaction?.transactionId ?? "UNKNOWN";
 
-  // Calculate risk score from risk factors if backend riskScore is incorrect
-  let displayRiskScore = rawRiskScore;
-  if (rawRiskScore === 0 && displayRiskFactors.length > 0) {
-    displayRiskScore = 0;
-    if (displayRiskFactors.includes('highAmount')) displayRiskScore += 30;
-    if (displayRiskFactors.includes('newPayee')) displayRiskScore += 25;
-    if (displayRiskFactors.includes('rarePayee')) displayRiskScore += 15;
-    if (displayRiskFactors.includes('newDevice')) displayRiskScore += 25;
-    if (displayRiskFactors.includes('unusualTime')) displayRiskScore += 15;
-    if (displayRiskFactors.includes('newLocation')) displayRiskScore += 15;
-    if (displayRiskFactors.includes('locationUnavailable')) displayRiskScore += 20;
-    if (displayRiskFactors.includes('amountAnomaly')) displayRiskScore += amountRiskDetails?.riskScore || 15;
-  }
-
   // Extract detailed analysis data from backend
   const analysis = riskAnalysis?.analysis ?? {};
 
-  // Time analysis
-  const timeAnalysis = analysis?.timing;
+  // Time analysis - backend uses 'timeAnalysis'
+  const timeAnalysis = analysis?.timeAnalysis;
   const hasTimeRisk = displayRiskFactors.includes('unusualTime') || timeAnalysis?.isUnusual;
 
-  // Amount analysis
-  const amountAnalysis = analysis?.amount;
+  // Amount analysis - backend uses 'amountAnalysis'
+  const amountAnalysis = analysis?.amountAnalysis;
   const hasAmountRisk = displayRiskFactors.includes('amountAnomaly') || amountAnalysis?.isAnomalous;
 
-  // Recipient analysis
-  const recipientAnalysis = analysis?.recipient;
+  // Recipient analysis - backend uses 'recipientAnalysis'
+  const recipientAnalysis = analysis?.recipientAnalysis;
   const hasRecipientRisk = displayRiskFactors.includes('newPayee') || displayRiskFactors.includes('rarePayee') || recipientAnalysis?.isNewPayee || recipientAnalysis?.isRarePayee;
 
-  // Device analysis
+  // Device analysis - backend uses 'device'
   const deviceAnalysis = analysis?.device;
   const hasDeviceRisk = displayRiskFactors.includes('newDevice') || deviceAnalysis?.isNewDevice;
 
-  // Location analysis
+  // Location analysis - backend uses 'locationAnalysis'
   const locationAnalysis = analysis?.locationAnalysis;
   const hasLocationRisk = displayRiskFactors.includes('newLocation') || displayRiskFactors.includes('locationUnavailable') || locationAnalysis?.isNewLocation || locationAnalysis?.isLocationUnavailable;
 
@@ -73,6 +59,14 @@ const TransactionRiskDetails = () => {
     hour12: false,
     timeZone,
   }).format(transactionTime);
+
+  // Helper function to convert 24-hour format to 12-hour format
+  const formatHourTo12Hour = (hour24) => {
+    const hour = parseInt(hour24);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${hour12}:00 ${period}`;
+  };
   
   const transactionDate = new Intl.DateTimeFormat(indianLocale, {
     day: '2-digit',
@@ -158,10 +152,9 @@ const TransactionRiskDetails = () => {
   let amountDetailsText = 'Analyzing transaction patterns...';
   if (amountRiskDetails) {
     if (amountPatterns?.hasEnoughData && typeof amountPatterns?.averageAmount === 'number') {
-      amountDetailsText = `Your average transaction amount: ₹${amountPatterns.averageAmount.toFixed(0)}.`;
-      if (amountRiskDetails.deviation) {
-        amountDetailsText += ` Deviation: ${(amountRiskDetails.deviation * 100).toFixed(0)}%`;
-      }
+      const averageAmount = amountPatterns.averageAmount;
+      const multiplier = (transactionAmount / averageAmount).toFixed(1);
+      amountDetailsText = `This amount is ${multiplier}x higher than your average of ₹${averageAmount.toFixed(0)}.`;
     } else if (amountPatterns && !amountPatterns.hasEnoughData) {
       amountDetailsText = 'First transaction - building transaction history...';
     } else if (amountRiskDetails.reason) {
@@ -169,10 +162,9 @@ const TransactionRiskDetails = () => {
     }
   } else if (amountAnalysis?.patterns?.hasEnoughData && typeof amountAnalysis?.patterns?.averageAmount === 'number') {
     // Fallback to direct amountAnalysis data if amountRiskDetails is not available
-    amountDetailsText = `Your average transaction amount: ₹${amountAnalysis.patterns.averageAmount.toFixed(0)}.`;
-    if (amountAnalysis.deviation) {
-      amountDetailsText += ` Deviation: ${(amountAnalysis.deviation * 100).toFixed(0)}%`;
-    }
+    const averageAmount = amountAnalysis.patterns.averageAmount;
+    const multiplier = (transactionAmount / averageAmount).toFixed(1);
+    amountDetailsText = `This amount is ${multiplier}x higher than your average of ₹${averageAmount.toFixed(0)}.`;
   }
 
   // Prepare text for Recipient Analysis to avoid showing "unknown"
@@ -196,7 +188,7 @@ const TransactionRiskDetails = () => {
     {
       icon: Clock,
       title: "Transaction Timing Analysis",
-      description: `Transaction initiated at ${transactionHour}:00 on ${transactionDayName}, ${transactionDate}. ${hasTimeRisk ? '⚠️ This timing is flagged as unusual compared to your typical patterns.' : '✅ Timing appears normal for your transaction history.'} ${timeRiskDetails ? `Typical hours: ${timeRiskDetails.typicalHours.length > 0 ? timeRiskDetails.typicalHours.join(', ') : 'Not established yet'}.` : ''}`,
+      description: `Transaction initiated at ${transactionHour}:00 on ${transactionDayName}, ${transactionDate}. ${hasTimeRisk ? '⚠️ This timing is flagged as unusual compared to your typical patterns.' : '✅ Timing appears normal for your transaction history.'} ${timeRiskDetails ? `Typical hours: ${timeRiskDetails.typicalHours.length > 0 ? timeRiskDetails.typicalHours.map(hour => formatHourTo12Hour(hour)).join(', ') : 'Not established yet'}.` : ''}`,
       isRisk: hasTimeRisk,
       type: 'timing',
       details: {
@@ -365,7 +357,7 @@ const TransactionRiskDetails = () => {
                             <div>Time: {category.details.currentTime}</div>
                             <div>Day: {category.details.dayOfWeek}</div>
                             {category.details.typicalHours.length > 0 && (
-                              <div>Typical Hours: {category.details.typicalHours.join(', ')}</div>
+                              <div>Typical Hours: {category.details.typicalHours.map(hour => formatHourTo12Hour(hour)).join(', ')}</div>
                             )}
                           </>
                         )}
