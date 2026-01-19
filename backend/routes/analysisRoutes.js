@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const User = require('../models/User');
-
+const { preCheckTransaction } = require('../controllers/analysisController');
+const NotificationService = require('../services/NotificationService');
 // @route   POST /api/transactions/analyze
 // @desc    Analyze transaction risk in real-time using AI-driven behavior fingerprinting
 // @access  Private
@@ -62,6 +63,23 @@ router.post('/analyze', protect, async (req, res) => {
 
     // --- Comprehensive Risk Calculation ---
     const comprehensiveRisk = await user.calculateComprehensiveRisk(transactionDataForAnalysis);
+
+    // ============================================================
+    // 🔔 NEW: TRIGGER SMS & PUSH NOTIFICATION
+    // ============================================================
+    if (comprehensiveRisk.totalRiskScore > 30) { // Threshold set to 30 for testing
+      console.log(`🚨 High Risk (${comprehensiveRisk.totalRiskScore}) detected! Sending Alert...`);
+      try {
+        await NotificationService.sendFraudAlert(user, { 
+          amount: parseFloat(amount),
+          riskScore: comprehensiveRisk.totalRiskScore
+        });
+        console.log("✅ Alert sent to Notification Service");
+      } catch (notifyErr) {
+        console.error("⚠️ Failed to send alert:", notifyErr.message);
+      }
+    }
+    // ============================================================
 
     // --- Add Transaction to User History ---
     const savedTransaction = user.addTransaction({
@@ -158,5 +176,7 @@ router.get('/user-patterns', protect, async (req, res) => {
     });
   }
 });
+
+
 
 module.exports = router;

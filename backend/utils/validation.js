@@ -21,6 +21,17 @@ const validateRegisterInput = (data) => {
     }
   }
 
+  //phone validation
+  if (!phoneNumber || phoneNumber.trim() === '') {
+    errors.phoneNumber = 'Phone number is required';
+  } else {
+    // Validates strictly 10 digits (no dashes or spaces)
+    const phoneRegex = /^[0-9]{10}$/; 
+    if (!phoneRegex.test(phoneNumber)) {
+      errors.phoneNumber = 'Phone number must be exactly 10 digits';
+    }
+  }
+
   // Password validation
   if (!password || password.trim() === '') {
     errors.password = 'Password is required';

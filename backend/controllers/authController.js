@@ -7,12 +7,13 @@ const { validateRegisterInput, validateLoginInput } = require('../utils/validati
 // @access  Public
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password, confirmPassword, role = 'user' } = req.body;
+    const { username, email, password, phoneNumber, confirmPassword, role = 'user' } = req.body;
 
     // Validate input
     const { isValid, errors } = validateRegisterInput({
       username,
       email,
+      phoneNumber,
       password,
       confirmPassword,
     });
@@ -41,6 +42,7 @@ const registerUser = async (req, res) => {
     const user = await User.create({
       username,
       email,
+      phoneNumber,
       password,
       role, // Default role is 'user', admin can be assigned by other means
     });
@@ -53,6 +55,7 @@ const registerUser = async (req, res) => {
       _id: user._id,
       username: user.username,
       email: user.email,
+      phoneNumber: user.phoneNumber,
       role: user.role,
       profile: user.profile,
       createdAt: user.createdAt,
@@ -130,6 +133,7 @@ const loginUser = async (req, res) => {
       _id: user._id,
       username: user.username,
       email: user.email,
+      phoneNumber: user.phoneNumber,
       role: user.role,
       profile: user.profile,
       lastLogin: user.lastLogin,

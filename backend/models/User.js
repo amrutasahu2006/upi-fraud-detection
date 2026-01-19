@@ -133,7 +133,11 @@ const userSchema = new mongoose.Schema({
       country: String,
       timestamp: Date
     }
-  }]
+  }],
+  // Taniya
+  phoneNumber: { type: String },
+  fcmToken: { type: String },
+  //Taniya
 }, {
   timestamps: true
 });
