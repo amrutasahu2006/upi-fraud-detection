@@ -62,21 +62,21 @@ const userSchema = new mongoose.Schema({
   transactions: [{
     transactionId: {
       type: String,
-      required: true,
-      unique: true
+      // required: true, // Removed to prevent empty object creation
+      // unique: true // Removed in favor of sparse index
     },
     amount: {
       type: Number,
-      required: true,
+      // required: true,
       min: 0
     },
     payee: {
       type: String,
-      required: true
+      // required: true
     },
     payeeUpiId: {
       type: String,
-      required: true
+      // required: true
     },
     purpose: {
       type: String,
@@ -557,5 +557,6 @@ userSchema.methods.calculateComprehensiveRisk = async function(transactionData) 
 userSchema.index({ 'transactions.timestamp': -1 });
 userSchema.index({ 'transactions.hour': 1 });
 userSchema.index({ email: 1 });
+userSchema.index({ 'transactions.transactionId': 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('User', userSchema);
