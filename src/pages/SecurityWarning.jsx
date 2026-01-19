@@ -10,7 +10,35 @@ const SecurityWarning = () => {
 
   // Get data from analysis result (preferred) or fallback to riskAnalysis
   const result = analysisResult || riskAnalysis;
-  const criticalRiskFactors = result?.riskFactors || ["blockVPA", "enable2FA", "suspiciousPattern"];
+  
+  // Convert backend riskFactors (object with weights) to array of factor names
+  const backendRiskFactors = result?.riskFactors ?? {};
+  const criticalRiskFactors = (() => {
+    // If it's already an array, use it
+    if (Array.isArray(backendRiskFactors)) return backendRiskFactors;
+    
+    // Convert object keys to array of factor names, mapping backend names to recommendation keys
+    const factorMapping = {
+      'amountAnomaly': 'highAmount',
+      'timePattern': 'unusualTime',
+      'newPayee': 'newPayee',
+      'deviceFingerprint': 'newDevice',
+      'locationAnomaly': 'newLocation',
+      'velocityCheck': 'suspiciousPattern',
+      'blacklistHit': 'blockVPA',
+      'whitelistHit': 'enable2FA'
+    };
+    
+    const factors = Object.keys(backendRiskFactors)
+      .filter(key => backendRiskFactors[key] > 0) // Only include factors with risk
+      .map(key => factorMapping[key] || key); // Map to recommendation keys
+    
+    // Fallback if no factors found
+    return factors.length > 0 ? factors : ["blockVPA", "enable2FA", "suspiciousPattern"];
+  })();
+  
+  console.log("🏠 Home Page - Risk Factors for Recommendations:", criticalRiskFactors);
+  
   const decision = result?.decision || 'WARN';
   const riskScore = result?.riskScore || 0;
   const amount = transaction?.amount || result?.amount || 0;

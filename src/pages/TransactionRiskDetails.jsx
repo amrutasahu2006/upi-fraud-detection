@@ -22,7 +22,32 @@ const TransactionRiskDetails = () => {
   // Use actual data from backend - always trust backend calculations
   const displayRiskScore = riskAnalysis?.riskScore ?? 0;
   const displayRiskLevel = riskAnalysis?.riskLevel ?? "UNKNOWN";
-  const displayRiskFactors = riskAnalysis?.riskFactors ?? [];
+  
+  // Convert backend riskFactors (object with weights) to array of factor names for recommendations
+  const backendRiskFactors = riskAnalysis?.riskFactors ?? {};
+  const displayRiskFactors = (() => {
+    // If it's already an array, use it
+    if (Array.isArray(backendRiskFactors)) return backendRiskFactors;
+    
+    // Convert object keys to array of factor names, mapping backend names to recommendation keys
+    const factorMapping = {
+      'amountAnomaly': 'highAmount',
+      'timePattern': 'unusualTime',
+      'newPayee': 'newPayee',
+      'deviceFingerprint': 'newDevice',
+      'locationAnomaly': 'newLocation',
+      'velocityCheck': 'suspiciousPattern',
+      'blacklistHit': 'blockVPA',
+      'whitelistHit': 'enable2FA'
+    };
+    
+    return Object.keys(backendRiskFactors)
+      .filter(key => backendRiskFactors[key] > 0) // Only include factors with risk
+      .map(key => factorMapping[key] || key); // Map to recommendation keys
+  })();
+  
+  console.log("🎯 Risk Factors for Recommendations:", displayRiskFactors);
+  
   const decision = riskAnalysis?.decision ?? 'UNKNOWN';
   const delayMinutes = (riskAnalysis?.metadata?.delayMinutes)
     ?? (riskAnalysis?.metadata?.delayDuration ? Math.round(riskAnalysis.metadata.delayDuration / 60) : undefined)
@@ -39,7 +64,7 @@ const TransactionRiskDetails = () => {
 
   // Amount analysis - backend uses 'amountAnalysis'
   const amountAnalysis = analysis?.amountAnalysis;
-  const hasAmountRisk = displayRiskFactors.includes('amountAnomaly') || amountAnalysis?.isAnomalous;
+  const hasAmountRisk = displayRiskFactors.includes('highAmount') || displayRiskFactors.includes('amountAnomaly') || amountAnalysis?.isAnomalous;
 
   // Recipient analysis - backend uses 'recipientAnalysis'
   const recipientAnalysis = analysis?.recipientAnalysis;

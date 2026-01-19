@@ -68,6 +68,7 @@ function UPIPaymentClean() {
       console.log("📤 Sending transaction for analysis:", transactionData);
       const result = await analyzeTransaction(transactionData);
       console.log("📥 Received risk analysis:", result);
+      console.log("📥 Result structure check - success:", result?.success, "data:", result?.data);
       
       setIsAnalyzing(false);
       setIsProcessing(false);
@@ -87,26 +88,44 @@ function UPIPaymentClean() {
         // Small delay to ensure context updates before navigation
         setTimeout(() => {
           const decision = result.data.decision;
-          console.log('🎯 Routing based on decision:', decision);
+          const riskScore = result.data.riskScore || 0;
+          console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore);
 
           // Show risk details for any non-APPROVE decision
           if (decision && decision !== 'APPROVE') {
+            console.log('➡️ Navigating to /risk-details');
+            navigate('/risk-details');
+            return;
+          }
+
+          // Fallback: if no decision but has risk score > 0, show risk details
+          if (!decision && riskScore > 0) {
+            console.log('➡️ Fallback navigation to /risk-details (no decision field)');
             navigate('/risk-details');
             return;
           }
 
           // APPROVE: proceed with success
+          console.log('✅ Payment approved, showing success');
           alert('Payment successful! ✅');
           setUpiId("");
           setSelectedAmount(500);
           setNote("");
         }, 100);
+      } else {
+        // Handle unsuccessful response
+        console.error('❌ Analysis failed:', result);
+        setIsAnalyzing(false);
+        setIsProcessing(false);
+        alert(result.message || 'Risk analysis failed. Please try again.');
       }
     } catch (error) {
-      console.error("Risk analysis failed:", error);
+      console.error("❌ CATCH BLOCK - Risk analysis failed:", error);
+      console.error("❌ Error message:", error.message);
+      console.error("❌ Error stack:", error.stack);
       setIsProcessing(false);
       setIsAnalyzing(false);
-      alert("Something went wrong. Please try again.");
+      alert("Something went wrong: " + error.message);
     }
   };
 

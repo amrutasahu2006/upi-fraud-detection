@@ -13,7 +13,9 @@ function AIRecommendationPanel({
   layout = 'list',
   onAction = null 
 }) {
-  const recs = generateRecommendations(riskFactors, maxRecommendations);
+  // Ensure riskFactors is always an array
+  const safeRiskFactors = Array.isArray(riskFactors) ? riskFactors : [];
+  const recs = generateRecommendations(safeRiskFactors, maxRecommendations);
 
   if (recs.length === 0) {
     return (
