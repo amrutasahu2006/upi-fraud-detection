@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { LogOut, UserCircle } from "lucide-react";
+import { LogOut, UserCircle, Shield } from "lucide-react";
 
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -11,8 +11,8 @@ export default function Header() {
         
         {/* Left: Logo */}
         <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-1 rounded">
-            <i className="fa-solid fa-shield text-white text-base md:text-lg lg:text-xl"></i>
+          <div className="bg-blue-600 p-2 rounded">
+            <Shield className="text-white" size={20} />
           </div>
           <h1 className="text-lg md:text-xl lg:text-2xl font-semibold text-blue-600">
             सुरक्षाPay

@@ -7,7 +7,10 @@ import { recommendations } from "../data/recommendationData.jsx";
  * @returns {Array<Object>} Array of recommendation objects
  */
 export function generateRecommendations(riskFactors = [], maxRecommendations = 3) {
-  return riskFactors
+  // Ensure riskFactors is always an array
+  const safeRiskFactors = Array.isArray(riskFactors) ? riskFactors : [];
+  
+  return safeRiskFactors
     .map(factor => recommendations[factor])
     .filter(Boolean) // Remove undefined entries
     .slice(0, maxRecommendations);

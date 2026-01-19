@@ -1,117 +1,288 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTransaction } from "../context/TransactionContext";
+import { chatbot } from "../services/chatbotService";
+import { Send, AlertCircle, CheckCircle, Clock } from "lucide-react";
 
 function SecurityChatbot() {
-  const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  const { currentTransaction, riskAnalysis } = useTransaction();
+  
+  const [messages, setMessages] = useState([]);
+  const [userInput, setUserInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleBlock = () => {
-    // Handle block action
-    navigate('/blocked');
-  };
+  // Initialize chatbot with transaction context
+  useEffect(() => {
+    console.log("🤖 Chatbot initialization:", { 
+      hasTransaction: !!currentTransaction, 
+      hasRiskAnalysis: !!riskAnalysis 
+    });
+    
+    if (currentTransaction && riskAnalysis) {
+      console.log("✅ Setting chatbot context with:", {
+        amount: currentTransaction.amount,
+        riskScore: riskAnalysis.riskScore
+      });
+      chatbot.setContext(currentTransaction, riskAnalysis);
+      const greeting = chatbot.generateInitialGreeting();
+      chatbot.addMessage(greeting, 'bot');
+      setMessages([{ content: greeting, type: 'bot', id: 1 }]);
+    } else {
+      // Fallback if no transaction data
+      console.log("⚠️ No transaction/risk data, showing fallback greeting");
+      const fallbackGreeting = "Hey! I'm SurakshaPay AI, your fraud detection assistant. To analyze a transaction, please make a payment first. I can help you understand risk factors and make safe decisions!";
+      chatbot.addMessage(fallbackGreeting, 'bot');
+      setMessages([{ content: fallbackGreeting, type: 'bot', id: 1 }]);
+    }
+  }, [currentTransaction, riskAnalysis]);
 
-  const handleSafe = () => {
-    // Handle safe action
-    navigate('/payment');
-  };
+  /**
+   * Execute action (block, delay, approve)
+   */
+  const executeAction = async (action) => {
+    if (!riskAnalysis?.transactionId) {
+      setError("Transaction ID not found");
+      console.error("❌ Transaction ID missing:", riskAnalysis);
+      return;
+    }
 
-  const handleSend = () => {
-    if (message.trim()) {
-      // Handle send message
-      console.log("Message sent:", message);
-      setMessage("");
+    setActionInProgress(action);
+    setIsLoading(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      console.log("🔑 Token check:", { token: token ? '✅ Found' : '❌ Not found', tokenLength: token?.length });
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in first.');
+      }
+
+      let endpoint = '';
+      let body = {};
+
+      console.log(`📤 Executing action: ${action} for transaction:`, riskAnalysis.transactionId);
+
+      if (action === 'BLOCK') {
+        endpoint = '/api/analysis/action/block';
+        body = { transactionId: riskAnalysis.transactionId, reason: 'User blocked via chatbot' };
+      } else if (action === 'DELAY') {
+        endpoint = '/api/analysis/action/delay';
+        body = { transactionId: riskAnalysis.transactionId, delayMinutes: 5 };
+      } else if (action === 'APPROVE') {
+        // For approve, we just show success message and let user navigate
+        const successMsg = '✅ Transaction approved! Proceeding with payment.';
+        chatbot.addMessage(successMsg, 'bot');
+        setMessages(prev => [...prev, { content: successMsg, type: 'bot', id: Date.now() }]);
+        setTimeout(() => navigate('/payment'), 1500);
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      console.log(`📊 Response status: ${response.status} for ${endpoint}`);
+      const responseData = await response.json();
+      console.log(`📥 Response data:`, responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `Action failed (${response.status})`);
+      }
+
+      if (action === 'BLOCK') {
+        chatbot.addMessage('🚫 Transaction blocked successfully! Your account is protected.', 'bot');
+        setMessages(prev => [...prev, { content: '🚫 Transaction blocked successfully! Your account is protected.', type: 'bot', id: Date.now() }]);
+        setTimeout(() => navigate('/blocked'), 1500);
+      } else if (action === 'DELAY') {
+        chatbot.addMessage('⏳ Transaction delayed for 5 minutes. This gives you time to verify everything.', 'bot');
+        setMessages(prev => [...prev, { content: '⏳ Transaction delayed for 5 minutes. This gives you time to verify everything.', type: 'bot', id: Date.now() }]);
+        setTimeout(() => navigate('/security-warning'), 1500);
+      }
+    } catch (err) {
+      console.error('Action error:', err);
+      setError(err.message || 'Failed to process action');
+      chatbot.addMessage(`❌ Error: ${err.message}`, 'bot');
+      setMessages(prev => [...prev, { content: `❌ Error: ${err.message}`, type: 'bot', id: Date.now() }]);
+    } finally {
+      setIsLoading(false);
+      setActionInProgress(null);
     }
   };
 
+  /**
+   * Handle user message
+   */
+  const handleSendMessage = async () => {
+    if (!userInput.trim() || isLoading) return;
+
+    const userMsg = userInput.trim();
+      console.log("📤 User sent message:", userMsg);
+    chatbot.addMessage(userMsg, 'user');
+    setMessages(prev => [...prev, { content: userMsg, type: 'user', id: Date.now() }]);
+    setUserInput("");
+    setIsLoading(true);
+
+    // Simulate typing delay for more natural feel
+    await new Promise(resolve => setTimeout(resolve, 600));
+
+    const response = chatbot.generateResponse(userMsg);
+      console.log("📥 Bot response:", response);
+    chatbot.addMessage(response.text, 'bot');
+    setMessages(prev => [...prev, { content: response.text, type: 'bot', id: Date.now() }]);
+
+    // Auto-execute action if high confidence
+    if (response.action && response.confidence > 0.8) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await executeAction(response.action);
+    }
+
+    setIsLoading(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center">
-      <div className="w-full max-w-screen-lg bg-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex justify-center">
+      <div className="w-full max-w-2xl bg-white flex flex-col h-screen md:h-auto md:rounded-3xl md:shadow-xl md:mt-4 md:mb-4">
 
         {/* Page Header */}
-        <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button onClick={() => navigate('/')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">SurakshaPay AI</h1>
+        <header className="flex items-center justify-between gap-3 px-4 py-4 md:px-6 md:py-5 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/')} 
+              aria-label="Go back" 
+              className="text-2xl cursor-pointer hover:opacity-70 transition-opacity"
+            >
+              ←
+            </button>
+            <div>
+              <h1 className="text-base md:text-lg font-bold text-slate-900">SurakshaPay AI</h1>
+              <p className="text-xs text-slate-500">Your fraud detection assistant</p>
+            </div>
+          </div>
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+            <span className="text-white font-bold text-lg">🤖</span>
+          </div>
         </header>
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 flex flex-col">
-
-          {/* Action Buttons */}
-          <div className="flex flex-row gap-3 mb-6">
-            <button
-              onClick={handleBlock}
-              className="flex-1 bg-blue-600 text-white font-medium py-3 md:py-4 px-4 md:px-6 rounded-lg hover:bg-blue-700 active:bg-blue-800 transition-colors text-sm md:text-base shadow-md hover:shadow-lg cursor-pointer"
+        {/* Chat Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+          {messages.map((msg, idx) => (
+            <div
+              key={msg.id || idx}
+              className={`flex items-end gap-3 animate-fade-in ${
+                msg.type === 'user' ? 'flex-row-reverse' : 'flex-row'
+              }`}
             >
-              Yes, block it
-            </button>
-            <button
-              onClick={handleSafe}
-              className="flex-1 bg-white text-gray-700 font-medium py-3 md:py-4 px-4 md:px-6 rounded-lg border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 active:bg-gray-100 transition-colors text-sm md:text-base shadow-sm hover:shadow-md cursor-pointer"
-            >
-              No, it's safe
-            </button>
-          </div>
-
-          {/* Chat Messages Area */}
-          <div className="flex-1 flex flex-col gap-4 mb-6">
-            {/* AI Message */}
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 md:w-5 md:h-5 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
-                </svg>
-              </div>
-              <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 md:px-5 py-3 md:py-4 max-w-[85%] md:max-w-[75%] lg:max-w-[65%]">
-                <p className="text-gray-800 text-sm md:text-base leading-relaxed">
-                  Hey User, this transaction looks unusual. Want me to block it?
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Input Area */}
-          <div className="border-t border-gray-200 pt-4">
-            <div className="flex items-center gap-2 md:gap-3">
-              <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Type your message..."
-                className="flex-1 px-4 md:px-5 py-2.5 md:py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base transition-all"
-              />
-              <button
-                onClick={handleSend}
-                className="bg-blue-600 text-white p-2.5 md:p-3 rounded-full hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center shadow-md hover:shadow-lg flex-shrink-0 cursor-pointer"
-                aria-label="Send message"
+              {msg.type === 'bot' && (
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">🤖</span>
+                </div>
+              )}
+              
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm md:text-base leading-relaxed whitespace-pre-wrap ${
+                  msg.type === 'user'
+                    ? 'bg-blue-600 text-white rounded-br-none'
+                    : 'bg-slate-100 text-slate-900 rounded-bl-none border border-slate-200'
+                }`}
               >
-                <svg
-                  className="w-5 h-5 md:w-6 md:h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                {msg.content}
+              </div>
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <span className="text-lg">🤖</span>
+              </div>
+              <div className="bg-slate-100 rounded-2xl rounded-bl-none px-4 py-3 flex gap-2">
+                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></span>
+                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        {messages.length > 0 && !actionInProgress && (
+          <div className="px-4 md:px-6 py-3 border-t border-slate-200 bg-slate-50">
+            <p className="text-xs text-slate-600 mb-3 font-medium">Quick actions:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {chatbot.getQuickActions().map((quickAction, idx) => (
+                <button
+                  key={idx}
+                  onClick={async () => {
+                    if (quickAction.action === 'QUERY') {
+                      // Treat as a "why" question
+                      const userMsg = 'Why is this risky?';
+                      chatbot.addMessage(userMsg, 'user');
+                      setMessages(prev => [...prev, { content: userMsg, type: 'user', id: Date.now() }]);
+                      setIsLoading(true);
+                      await new Promise(resolve => setTimeout(resolve, 400));
+                      const response = chatbot.generateResponse(userMsg);
+                      chatbot.addMessage(response.text, 'bot');
+                      setMessages(prev => [...prev, { content: response.text, type: 'bot', id: Date.now() }]);
+                      setIsLoading(false);
+                      return;
+                    }
+
+                    if (['BLOCK', 'DELAY', 'APPROVE'].includes(quickAction.action)) {
+                      await executeAction(quickAction.action);
+                    }
+                  }}
+                  disabled={isLoading}
+                  className="px-3 py-2 bg-white border border-slate-300 text-slate-900 text-xs md:text-sm font-medium rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                  />
-                </svg>
-              </button>
+                  {quickAction.label}
+                </button>
+              ))}
             </div>
           </div>
-        </main>
+        )}
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mx-4 md:mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-red-900">{error}</div>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="border-t border-slate-200 p-4 md:p-6 bg-white">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              placeholder="Type your question or decision..."
+              disabled={isLoading || actionInProgress}
+              className="flex-1 px-4 py-2.5 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={isLoading || !userInput.trim() || actionInProgress}
+              className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center disabled:bg-slate-400 disabled:cursor-not-allowed flex-shrink-0 cursor-pointer"
+              aria-label="Send message"
+            >
+              {actionInProgress ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Send size={18} />
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
