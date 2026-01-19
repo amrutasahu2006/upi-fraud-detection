@@ -97,7 +97,8 @@ function App() {
             />
 
             {/* Main Landing */}
-            <Route path="/" element={<SecurityWarning />} />
+            <Route path="/" element={<UPIPayment />} />
+            <Route path="/security-warning" element={<SecurityWarning />} />
             <Route path="/chatbot" element={<SecurityChatbot />} />
 
             {/* Security & Recommendations */}

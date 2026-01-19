@@ -155,7 +155,7 @@ function SecurityChatbot() {
         <header className="flex items-center justify-between gap-3 px-4 py-4 md:px-6 md:py-5 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => navigate('/')} 
+              onClick={() => navigate('/security-warning')} 
               aria-label="Go back" 
               className="text-2xl cursor-pointer hover:opacity-70 transition-opacity"
             >

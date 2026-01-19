@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Shield, Paperclip, CreditCard, ShieldCheck, 
-  ChevronRight, User, Info 
+  ChevronRight, User, Info, Wallet
 } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 import { analyzeTransaction } from "../services/mockApi";
@@ -91,17 +91,10 @@ function UPIPaymentClean() {
           const riskScore = result.data.riskScore || 0;
           console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore);
 
-          // Show risk details for any non-APPROVE decision
-          if (decision && decision !== 'APPROVE') {
-            console.log('➡️ Navigating to /risk-details');
-            navigate('/risk-details');
-            return;
-          }
-
-          // Fallback: if no decision but has risk score > 0, show risk details
-          if (!decision && riskScore > 0) {
-            console.log('➡️ Fallback navigation to /risk-details (no decision field)');
-            navigate('/risk-details');
+          // For any warning or threat (riskScore >= 30) or non-APPROVE decision, show warning page
+          if ((decision && decision !== 'APPROVE') || riskScore >= 30) {
+            console.log('➡️ Navigating to /security-warning');
+            navigate('/security-warning');
             return;
           }
 
@@ -138,7 +131,7 @@ function UPIPaymentClean() {
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
         {/* Page Header */}
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button onClick={() => navigate('/')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
+          <Wallet className="text-blue-600" size={24} />
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Send Money</h1>
         </header>
 

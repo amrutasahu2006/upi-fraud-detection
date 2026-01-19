@@ -68,10 +68,10 @@ const SecurityWarning = () => {
             
             <div className="space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-                    {decision === 'DELAY' ? 'Transaction Delayed' : 'Security Warning'}
+                  Security Warning
                 </h2>
                 <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-red-50 text-red-700 text-xs sm:text-sm font-semibold border border-red-100">
-                    {decision === 'DELAY' ? `Delayed for ${Math.floor(delayDuration / 60)} minutes` : 'High Fraud Risk Detected'}
+                  High Fraud Risk Detected
                 </div>
             </div>
             
