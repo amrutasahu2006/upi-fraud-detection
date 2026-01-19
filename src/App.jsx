@@ -1,3 +1,6 @@
+import { requestPermission, messaging } from "./firebase";
+import { onMessage } from "firebase/messaging";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Pages
@@ -29,6 +32,31 @@ import { AuthProvider } from "./context/AuthContext";
 import { TransactionProvider } from "./context/TransactionContext";
 
 function App() {
+  useEffect(() => {
+    // A. Ask for permission and get the token
+    const setupNotifications = async () => {
+      const token = await requestPermission();
+      
+      if (token) {
+        console.log("Got FCM Token:", token);
+        // TODO: Send this token to your Backend to save it to the User's profile
+        // Example:
+        // axios.post('http://localhost:5000/api/auth/update-fcm-token', { fcmToken: token }, { headers: { Authorization: `Bearer ${userToken}` }});
+      }
+    };
+
+    setupNotifications();
+
+    // B. Listen for messages when the app is open (Foreground)
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log('Foreground Message received:', payload);
+      // You can replace this with a nice UI Toast/Popup
+      alert(`🚨 ${payload.notification.title}: ${payload.notification.body}`);
+    });
+
+    return () => unsubscribe(); // Cleanup
+  }, []);
+
   return (
     <AuthProvider>
       <TransactionProvider>

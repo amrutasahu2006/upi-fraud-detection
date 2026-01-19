@@ -38,7 +38,8 @@ export async function analyzeTransaction(transactionData) {
       throw new Error('Authentication required');
     }
     
-    const response = await fetch('http://localhost:5000/api/transactions/analyze', {
+    // const response = await fetch('http://localhost:5000/api/transactions/analyze', {
+    const response = await fetch('http://localhost:5000/api/analysis/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
