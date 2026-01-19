@@ -367,8 +367,15 @@ const TransactionRiskDetails = () => {
                             {category.details.averageAmount > 0 && (
                               <div>Average: ₹{category.details.averageAmount.toFixed(0)}</div>
                             )}
+                            {category.details.averageAmount > 0 && (
+                              <div>
+                                This is { (category.details.amount / category.details.averageAmount).toFixed(1) }x your average.
+                              </div>
+                            )}
                             {category.details.deviation !== 0 && (
-                              <div>Deviation: {(category.details.deviation * 100).toFixed(0)}%</div>
+                              <div>
+                                ({category.details.deviation.toFixed(1)} standard deviations from the average)
+                              </div>
                             )}
                           </>
                         )}
