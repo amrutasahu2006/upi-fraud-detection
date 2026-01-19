@@ -9,6 +9,7 @@ import SecurityRecommendations from "./pages/SecurityRecommendations";
 import TransactionBlocked from "./pages/TransactionBlocked";
 import SecurityWarning from "./pages/SecurityWarning";
 import UPIPayment from "./pages/UPIPayment";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import TransactionRiskDetails from "./pages/TransactionRiskDetails";
 import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
@@ -111,6 +112,7 @@ function App() {
 
             {/* Transaction Flow */}
             <Route path="/payment" element={<UPIPayment />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/blocked" element={<TransactionBlocked />} />
             <Route path="/risk-details" element={<TransactionRiskDetails />} />
           </Routes>
