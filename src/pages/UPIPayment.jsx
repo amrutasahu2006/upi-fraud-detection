@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Shield, Paperclip, CreditCard, ShieldCheck, 
   ChevronRight, User, Info 
 } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
-import { useAuth } from "../context/AuthContext";
 import { analyzeTransaction } from "../services/mockApi";
 
 function UPIPaymentClean() {
@@ -13,55 +12,8 @@ function UPIPaymentClean() {
   const [upiId, setUpiId] = useState("");
   const [note, setNote] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
-  const [locationError, setLocationError] = useState(null);
-  const [deviceId, setDeviceId] = useState('');
   const navigate = useNavigate();
   const { startTransaction, setAnalysisResult, setIsAnalyzing } = useTransaction();
-  const { isAuthenticated, token } = useAuth();
-
-  // Get user's location and device ID on component mount
-  useEffect(() => {
-    // --- Device ID Management ---
-    let id = localStorage.getItem('fraud_detection_device_id');
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem('fraud_detection_device_id', id);
-    }
-    setDeviceId(id);
-    console.log(`🔑 Device ID: ${id}`);
-
-    // --- Location Management ---
-    console.log('🔧 Setting Mumbai as initial fallback location');
-    setUserLocation({
-      latitude: 19.0760, // Mumbai coordinates
-      longitude: 72.8777,
-      accuracy: 1000,
-      timestamp: new Date().toISOString()
-    });
-
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log('✅ Real location obtained:', position.coords);
-          setUserLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: new Date().toISOString()
-          });
-          setLocationError(null);
-        },
-        (error) => {
-          console.warn('❌ Location access error:', error);
-          console.log('🔧 Keeping Mumbai fallback location due to error');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-      );
-    } else {
-      console.log('🔧 Geolocation not supported, keeping Mumbai fallback');
-    }
-  }, []);
 
   const amounts = [500, 1000, 2000, 5000];
   const quickContacts = [
@@ -72,45 +24,47 @@ function UPIPaymentClean() {
 
   // Handle payment submission with risk analysis
   const handlePayment = async () => {
-    if (!isAuthenticated) {
-      alert("Please log in to make a payment.");
-      navigate('/login');
-      return;
-    }
     if (!upiId || !selectedAmount) {
       alert("Please enter UPI ID and amount");
-      return;
-    }
-    if (!deviceId) {
-      alert("Device ID not found. Please refresh the page.");
       return;
     }
 
     setIsProcessing(true);
     setIsAnalyzing(true);
+
+    // Detect if payee is new (not in quick contacts)
+    const isNewPayee = !quickContacts.some(c => c.upi === upiId);
     
+    // Detect if amount is high
     const isHighAmount = selectedAmount > 10000;
+    
+    // Detect if time is unusual (before 6 AM or after 10 PM)
     const currentHour = new Date().getHours();
     const isUnusualTime = currentHour < 6 || currentHour > 22;
 
+    // Create transaction data with proper risk factor detection
     const transactionData = {
-      transactionId: crypto.randomUUID(),
       amount: selectedAmount,
       recipient: {
         name: upiId.split('@')[0],
         upi: upiId,
+        isNewPayee: isNewPayee
       },
       note,
       timestamp: new Date().toISOString(),
-      location: userLocation,
-      deviceId: deviceId,
-      isHighAmount,
-      isUnusualTime,
+      // Explicitly pass risk factors - IMPORTANT!
+      isNewPayee: isNewPayee,
+      isHighAmount: isHighAmount,
+      isNewDevice: false,
+      isUnusualTime: isUnusualTime,
+      isNewLocation: false
     };
 
+    // Store transaction in context
     startTransaction(transactionData);
 
     try {
+      // Call backend API (mocked for now)
       console.log("📤 Sending transaction for analysis:", transactionData);
       const result = await analyzeTransaction(transactionData);
       console.log("📥 Received risk analysis:", result);
@@ -119,36 +73,46 @@ function UPIPaymentClean() {
       setIsProcessing(false);
 
       if (result.success) {
+        // Store analysis result in context
         setAnalysisResult(result.data);
-        
-        // The backend now handles saving, so no separate save call is needed.
-        
-        setTimeout(() => {
-          if (result.data.shouldBlock || result.data.shouldWarn) {
-            navigate('/risk-details');
-          } else {
-            alert('Payment successful! ✅');
-            setUpiId("");
-            setSelectedAmount(500);
-            setNote("");
-          }
-        }, 100);
+        console.log("✅ Risk analysis data:", {
+          amount: result.data.amount || selectedAmount,
+          riskScore: result.data.riskScore,
+          riskLevel: result.data.riskLevel,
+          decision: result.data.decision,
+          riskFactors: result.data.riskFactors
+        });
+        console.log("📋 Detailed reasons:", result.data.detailedReasons);
 
-      } else {
-        throw new Error(result.message || "Risk analysis failed on the backend.");
+        // Small delay to ensure context updates before navigation
+        setTimeout(() => {
+          const decision = result.data.decision;
+          console.log('🎯 Routing based on decision:', decision);
+
+          // Show risk details for any non-APPROVE decision
+          if (decision && decision !== 'APPROVE') {
+            navigate('/risk-details');
+            return;
+          }
+
+          // APPROVE: proceed with success
+          alert('Payment successful! ✅');
+          setUpiId("");
+          setSelectedAmount(500);
+          setNote("");
+        }, 100);
       }
     } catch (error) {
       console.error("Risk analysis failed:", error);
       setIsProcessing(false);
       setIsAnalyzing(false);
-      alert(`An error occurred: ${error.message}. Please try again.`);
+      alert("Something went wrong. Please try again.");
     }
   };
 
   const selectQuickContact = (contact) => {
     setUpiId(contact.upi);
   };
-
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
@@ -162,18 +126,6 @@ function UPIPaymentClean() {
         {/* Main Content */}
         <main className="p-4 md:p-6 lg:p-8">
         
-        {/* Location Status */}
-        {locationError && (
-          <div className="mb-4 p-3 text-sm text-red-700 bg-red-100 border border-red-200 rounded-lg">
-            <strong>Location Error:</strong> {locationError}. Please enable location services in your browser and system settings for enhanced security.
-          </div>
-        )}
-        {!userLocation && !locationError && (
-          <div className="mb-4 p-3 text-sm text-blue-700 bg-blue-100 border border-blue-200 rounded-lg">
-            Acquiring location for security checks...
-          </div>
-        )}
-
         {/* Page Heading Section - Scaled text for mobile */}
         <div className="mb-8 lg:mb-12">
           <p className="text-base sm:text-xl text-slate-500 max-w-2xl font-medium">

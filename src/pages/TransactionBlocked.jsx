@@ -1,7 +1,17 @@
 import { useNavigate } from "react-router-dom";
+import { useTransaction } from "../context/TransactionContext";
+import { ShieldX, AlertTriangle } from "lucide-react";
 
 function TransactionBlocked() {
   const navigate = useNavigate();
+  const { transaction, analysisResult } = useTransaction();
+  
+  // Get transaction data from context or use defaults
+  const amount = transaction?.amount || analysisResult?.amount || 25000;
+  const recipientVPA = transaction?.recipient?.upi || analysisResult?.recipientVPA || 'unknown@bank';
+  const riskScore = analysisResult?.riskScore || 92;
+  const decision = analysisResult?.decision || 'BLOCK';
+  const reasons = analysisResult?.detailedReasons || [];
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
@@ -41,19 +51,39 @@ function TransactionBlocked() {
               <div className="divide-y divide-gray-100">
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="text-sm text-gray-500">Receiver VPA</div>
-                  <div className="text-sm font-medium text-gray-700">receiver@bankname</div>
+                  <div className="text-sm font-medium text-gray-700">{recipientVPA}</div>
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-3">
                   <div className="text-sm text-gray-500">Amount</div>
-                  <div className="text-sm font-semibold text-gray-700">₹ 25,000.00</div>
+                  <div className="text-sm font-semibold text-gray-700">₹ {amount.toLocaleString('en-IN')}</div>
                 </div>
 
                 <div className="flex items-center justify-between px-4 py-3">
-                  <div className="text-sm text-gray-600">Reported Risk Score</div>
-                  <div className="text-sm font-semibold text-red-600">92%</div>
+                  <div className="text-sm text-gray-600">Risk Score</div>
+                  <div className="text-sm font-semibold text-red-600">{riskScore}%</div>
+                </div>
+                
+                <div className="flex items-center justify-between px-4 py-3">
+                  <div className="text-sm text-gray-600">Decision</div>
+                  <div className="text-sm font-semibold text-red-600">{decision}</div>
                 </div>
               </div>
+              
+              {/* Show reasons if available */}
+              {reasons.length > 0 && (
+                <div className="px-4 py-3 bg-red-50 border-t">
+                  <div className="text-xs font-semibold text-gray-700 mb-2">Reasons for blocking:</div>
+                  <ul className="text-xs text-gray-600 space-y-1">
+                    {reasons.slice(0, 3).map((reason, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <AlertTriangle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <button

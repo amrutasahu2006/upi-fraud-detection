@@ -130,10 +130,23 @@ async function mockAnalyzeTransaction(transactionData) {
   
   const finalRiskScore = Math.min(riskScore, 100);
 
-  // Determine risk level
+  // Determine risk level and decision
   let riskLevel = "LOW";
-  if (finalRiskScore >= 70) riskLevel = "HIGH";
-  else if (finalRiskScore >= 40) riskLevel = "MEDIUM";
+  let decision = "APPROVE";
+  
+  if (finalRiskScore >= 80) {
+    riskLevel = "CRITICAL";
+    decision = "BLOCK";
+  } else if (finalRiskScore >= 60) {
+    riskLevel = "HIGH";
+    decision = "DELAY";
+  } else if (finalRiskScore >= 30) {
+    riskLevel = "MEDIUM";
+    decision = "WARN";
+  } else {
+    riskLevel = "LOW";
+    decision = "APPROVE";
+  }
 
   const riskAnalysis = {
     totalRiskScore: finalRiskScore,
@@ -198,9 +211,19 @@ async function mockAnalyzeTransaction(transactionData) {
       transactionId: `TRX-MOCK-${Date.now()}`,
       riskScore: finalRiskScore,
       riskLevel: riskLevel,
+      decision: decision,
       riskFactors: detectedFactors,
       shouldBlock: finalRiskScore >= 80,
-      shouldWarn: finalRiskScore >= 40,
+      shouldWarn: finalRiskScore >= 30,
+      detailedReasons: [
+        isNewPayee && "New recipient - first time sending money to this VPA",
+        (isHighAmount || amount > 10000) && `High amount transaction (₹${amount.toLocaleString('en-IN')})`,
+        isUnusualTime && "Transaction at unusual time (late night/early morning)"
+      ].filter(Boolean),
+      metadata: {
+        delayDuration: decision === 'DELAY' ? 300 : 0,
+        requiresConfirmation: decision === 'WARN'
+      },
       timestamp: new Date().toISOString(),
       analysis: riskAnalysis.analysis
     }

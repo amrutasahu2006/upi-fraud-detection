@@ -22,6 +22,7 @@ import ProfilePage from "./pages/auth/ProfilePage";
 
 // Admin pages
 import UserManagementPage from "./pages/admin/UserManagementPage";
+import RiskManagementPanel from "./pages/admin/RiskManagementPanel";
 
 // Components
 import Header from "./components/Header";
@@ -82,6 +83,15 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <UserManagementPage />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/risk-management"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <RiskManagementPanel />
                 </ProtectedRoute>
               }
             />

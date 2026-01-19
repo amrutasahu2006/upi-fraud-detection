@@ -1,12 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
-const User = require('../models/User');
-const { preCheckTransaction } = require('../controllers/analysisController');
-const NotificationService = require('../services/NotificationService');
+const { protect, adminOnly } = require('../middleware/auth');
+const {
+  analyzeTransaction,
+  getThresholds,
+  updateThresholds,
+  delayTransaction,
+  blockTransaction
+} = require('../controllers/analysisController');
 // @route   POST /api/transactions/analyze
 // @desc    Analyze transaction risk in real-time using AI-driven behavior fingerprinting
 // @access  Private
+// ===== OLD ROUTE - COMMENTED OUT =====
+// This old implementation is replaced by the new Risk Scoring Engine below
+// Keeping for reference only
+/*
 router.post('/analyze', protect, async (req, res) => {
   try {
     const {
@@ -134,6 +142,8 @@ router.post('/analyze', protect, async (req, res) => {
     });
   }
 });
+*/
+// ===== END OLD ROUTE =====
 
 // @route   GET /api/transactions/user-patterns
 // @desc    Get user's transaction patterns for analysis
@@ -177,6 +187,34 @@ router.get('/user-patterns', protect, async (req, res) => {
   }
 });
 
+// ===== NEW RISK SCORING ENDPOINTS =====
 
+// @route   POST /api/analysis/analyze
+// @desc    Analyze transaction with comprehensive risk scoring
+// @access  Private
+router.post('/analyze', protect, analyzeTransaction);
+
+// @route   GET /api/analysis/thresholds
+// @desc    Get current risk thresholds configuration
+// @access  Private (Admin only)
+router.get('/thresholds', protect, adminOnly, getThresholds);
+
+// @route   PUT /api/analysis/thresholds
+// @desc    Update risk thresholds
+// @access  Private (Admin only)
+router.put('/thresholds', protect, adminOnly, updateThresholds);
+
+// ===== ACTION ENDPOINTS: User-initiated delay/block =====
+// @route   POST /api/analysis/action/delay
+// @desc    Delay a transaction by X minutes
+// @access  Private
+router.post('/action/delay', protect, delayTransaction);
+
+// @route   POST /api/analysis/action/block
+// @desc    Block a transaction immediately
+// @access  Private
+router.post('/action/block', protect, blockTransaction);
+
+module.exports = router;
 
 module.exports = router;

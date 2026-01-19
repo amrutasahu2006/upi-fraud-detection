@@ -6,10 +6,17 @@ import AIRecommendationPanel from "../components/AIRecommendationPanel";
 
 const SecurityWarning = () => {
   const navigate = useNavigate();
-  const { riskAnalysis } = useTransaction();
+  const { transaction, analysisResult, riskAnalysis } = useTransaction();
 
-  // Use risk analysis data if available, otherwise show default high-risk scenario
-  const criticalRiskFactors = riskAnalysis?.riskFactors || ["blockVPA", "enable2FA", "suspiciousPattern"];
+  // Get data from analysis result (preferred) or fallback to riskAnalysis
+  const result = analysisResult || riskAnalysis;
+  const criticalRiskFactors = result?.riskFactors || ["blockVPA", "enable2FA", "suspiciousPattern"];
+  const decision = result?.decision || 'WARN';
+  const riskScore = result?.riskScore || 0;
+  const amount = transaction?.amount || result?.amount || 0;
+  const recipientVPA = transaction?.recipient?.upi || result?.recipientVPA || 'unknown@bank';
+  const delayDuration = result?.metadata?.delayDuration || 300; // seconds
+  const reasons = result?.detailedReasons || [];
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16">
@@ -33,29 +40,45 @@ const SecurityWarning = () => {
             
             <div className="space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-                    Security Warning
+                    {decision === 'DELAY' ? 'Transaction Delayed' : 'Security Warning'}
                 </h2>
                 <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-red-50 text-red-700 text-xs sm:text-sm font-semibold border border-red-100">
-                    High Fraud Risk Detected
+                    {decision === 'DELAY' ? `Delayed for ${Math.floor(delayDuration / 60)} minutes` : 'High Fraud Risk Detected'}
                 </div>
             </div>
             
             <p className="text-sm sm:text-base lg:text-lg text-gray-600 leading-relaxed max-w-[90%] mx-auto">
-              This VPA has been reported multiple times for fraudulent activities. 
-              Proceeding may result in <span className="font-semibold text-red-600">permanent loss of funds</span>.
+              {decision === 'DELAY' 
+                ? `This transaction (₹${amount.toLocaleString('en-IN')} to ${recipientVPA}) has been flagged for security review. It will be processed after ${Math.floor(delayDuration / 60)} minutes.`
+                : `This transaction to ${recipientVPA} has moderate to high risk factors. Risk score: ${riskScore}%. Please review carefully before proceeding.`
+              }
             </p>
           </div>
 
-          {/* AI Insight Box - Optimized for readability */}
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 flex gap-4 items-start">
-            <div className="bg-blue-100 p-2 rounded-lg hidden sm:block">
-                <MessageCircle size={18} className="text-blue-600" />
+          {/* AI Insight Box - Show actual reasons */}
+          {reasons.length > 0 && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
+              <div className="flex gap-4 items-start mb-3">
+                <div className="bg-blue-100 p-2 rounded-lg hidden sm:block">
+                    <MessageCircle size={18} className="text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <span className="font-bold text-slate-800 block mb-1">AI Risk Analysis:</span>
+                  <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-2">
+                    Our system has identified the following risk factors:
+                  </p>
+                  <ul className="text-xs sm:text-sm text-slate-600 space-y-1">
+                    {reasons.slice(0, 3).map((reason, index) => (
+                      <li key={index} className="flex items-start gap-2">
+                        <span className="text-red-500">•</span>
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              <span className="font-bold text-slate-800 block mb-1">AI Risk Analysis:</span>
-              This transaction deviates from typical payment patterns. Our system has flagged this VPA for unusual rapid-fire transaction history.
-            </p>
-          </div>
+          )}
 
           {/* Action Area */}
           <div className="space-y-3 sm:space-y-4 pt-2">

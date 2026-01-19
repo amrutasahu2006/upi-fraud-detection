@@ -13,6 +13,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const analysisRoutes = require('./routes/analysisRoutes');
 const alertRoutes = require('./routes/alertRoutes');
+const blacklistRoutes = require('./routes/blacklistRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -41,6 +42,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/alerts', alertRoutes);
+app.use('/api/lists', blacklistRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
