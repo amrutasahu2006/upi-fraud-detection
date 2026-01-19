@@ -8,8 +8,8 @@ const transactionSchema = new mongoose.Schema({
   },
   transactionId: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    sparse: true
   },
   amount: {
     type: Number,
@@ -17,12 +17,20 @@ const transactionSchema = new mongoose.Schema({
     min: 0
   },
   payee: {
-    type: String,
-    required: true
+    type: String
   },
   payeeUpiId: {
-    type: String,
-    required: true
+    type: String
+  },
+  // New fields for enhanced risk scoring
+  recipientVPA: {
+    type: String
+  },
+  recipientName: {
+    type: String
+  },
+  recipientPhone: {
+    type: String
   },
   purpose: {
     type: String,
@@ -30,8 +38,8 @@ const transactionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'blocked'],
-    default: 'completed'
+    enum: ['pending', 'completed', 'failed', 'blocked', 'delayed'],
+    default: 'pending'
   },
   timestamp: {
     type: Date,
@@ -53,10 +61,24 @@ const transactionSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
-  riskFactors: [{
+  riskLevel: {
     type: String,
-    enum: ['newPayee', 'highAmount', 'newDevice', 'unusualTime', 'newLocation']
-  }],
+    enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+    default: 'LOW'
+  },
+  riskFactors: {
+    type: Object,
+    default: {}
+  },
+  decision: {
+    type: String,
+    enum: ['APPROVE', 'WARN', 'DELAY', 'BLOCK'],
+    default: 'APPROVE'
+  },
+  decisionMetadata: {
+    type: Object,
+    default: {}
+  },
   isBlocked: {
     type: Boolean,
     default: false
@@ -69,6 +91,16 @@ const transactionSchema = new mongoose.Schema({
     userAgent: String,
     ipAddress: String,
     deviceId: String
+  },
+  deviceId: {
+    type: String
+  },
+  location: {
+    latitude: Number,
+    longitude: Number,
+    city: String,
+    state: String,
+    country: String
   }
 }, {
   timestamps: true

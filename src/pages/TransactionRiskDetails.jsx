@@ -23,6 +23,10 @@ const TransactionRiskDetails = () => {
   const displayRiskScore = riskAnalysis?.riskScore ?? 0;
   const displayRiskLevel = riskAnalysis?.riskLevel ?? "UNKNOWN";
   const displayRiskFactors = riskAnalysis?.riskFactors ?? [];
+  const decision = riskAnalysis?.decision ?? 'UNKNOWN';
+  const delayMinutes = (riskAnalysis?.metadata?.delayMinutes)
+    ?? (riskAnalysis?.metadata?.delayDuration ? Math.round(riskAnalysis.metadata.delayDuration / 60) : undefined)
+    ?? 5;
   const transactionAmount = currentTransaction?.amount ?? 0;
   const transactionId = riskAnalysis?.transactionId ?? currentTransaction?.transactionId ?? "UNKNOWN";
 
@@ -443,6 +447,52 @@ const TransactionRiskDetails = () => {
               </div>
             </div>
 
+          </div>
+
+          {/* AI Recommendations Section */}
+          {/* Suggested Next Action (Delay or Block) */}
+          <div className="mt-8 lg:mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Suggested Next Step
+            </h2>
+            <p className="text-gray-600 text-sm mb-6">
+              Based on the current risk score and patterns, we recommend the safest action below.
+            </p>
+
+            {/* Determine recommended action: BLOCK for >=80, DELAY for 60-79, DELAY for 30-59 */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Delay Button */}
+              <button
+                onClick={() => navigate('/security-warning')}
+                className={`px-5 py-3 rounded-xl text-white text-sm font-semibold shadow-sm cursor-pointer ${
+                  displayRiskScore >= 60 && displayRiskScore < 80 ? 'bg-orange-600 hover:bg-orange-700' : 'bg-gray-700 hover:bg-gray-800'
+                }`}
+                aria-label={`Delay transaction by ${delayMinutes} minutes`}
+              >
+                ⏳ Delay Transaction ({delayMinutes} min)
+              </button>
+
+              {/* Block Button */}
+              <button
+                onClick={() => navigate('/blocked')}
+                className={`px-5 py-3 rounded-xl text-white text-sm font-semibold shadow-sm cursor-pointer ${
+                  displayRiskScore >= 80 || decision === 'BLOCK' ? 'bg-red-600 hover:bg-red-700' : 'bg-red-500 hover:bg-red-600'
+                }`}
+                aria-label="Block and report this transaction"
+              >
+                🚫 Block Transaction
+              </button>
+            </div>
+
+            {displayRiskScore >= 80 && (
+              <p className="text-red-600 text-xs mt-2">Critical risk detected. Blocking is strongly recommended.</p>
+            )}
+            {displayRiskScore >= 60 && displayRiskScore < 80 && (
+              <p className="text-orange-600 text-xs mt-2">High risk detected. Delaying for security verification is advised.</p>
+            )}
+            {displayRiskScore >= 30 && displayRiskScore < 60 && (
+              <p className="text-yellow-600 text-xs mt-2">Moderate risk detected. Consider delaying before proceeding.</p>
+            )}
           </div>
 
           {/* AI Recommendations Section */}

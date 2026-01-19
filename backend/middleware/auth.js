@@ -72,5 +72,6 @@ module.exports = {
   authenticate,
   authorizeRoles,
   protect: authenticate,
-  authorize: authorizeRoles
+  authorize: authorizeRoles,
+  adminOnly: authorizeRoles('admin')
 };

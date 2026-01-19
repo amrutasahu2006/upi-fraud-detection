@@ -18,7 +18,7 @@ class NotificationService {
         console.error("⚠️ Twilio Init Failed:", err.message);
     }
 
-    // Firebase Init (Keep existing code)
+    // Firebase Init (Optional - Push Notifications)
     try {
       if (!admin.apps.length) {
         const serviceAccount = require(path.join(__dirname, '../config/serviceAccountKey.json'));
@@ -28,7 +28,8 @@ class NotificationService {
       }
       this.messaging = admin.messaging();
     } catch (error) {
-      console.log("⚠️ Firebase not initialized");
+      // Firebase not configured - that's OK, SMS notifications via Twilio are working
+      // console.log("⚠️ Firebase not initialized");
     }
   }
 
