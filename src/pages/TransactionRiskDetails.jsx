@@ -301,7 +301,7 @@ const TransactionRiskDetails = () => {
 
         {/* Page Header */}
         <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button onClick={() => navigate('/')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
+          <button onClick={() => navigate('/security-warning')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Transaction Risk Details</h1>
         </header>
 
