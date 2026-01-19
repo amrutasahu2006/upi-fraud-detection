@@ -89,7 +89,15 @@ function UPIPaymentClean() {
         setTimeout(() => {
           const decision = result.data.decision;
           const riskScore = result.data.riskScore || 0;
-          console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore);
+          const amount = result.data.amount || selectedAmount;
+          console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore, 'Amount:', amount);
+
+          // TEST MODE: For demo purposes, allow small amounts (≤1000) to go through
+          if (amount <= 1000) {
+            console.log('✅ Small amount bypass - navigating to success page');
+            navigate('/payment-success');
+            return;
+          }
 
           // For any warning or threat (riskScore >= 30) or non-APPROVE decision, show warning page
           if ((decision && decision !== 'APPROVE') || riskScore >= 30) {
@@ -99,11 +107,8 @@ function UPIPaymentClean() {
           }
 
           // APPROVE: proceed with success
-          console.log('✅ Payment approved, showing success');
-          alert('Payment successful! ✅');
-          setUpiId("");
-          setSelectedAmount(500);
-          setNote("");
+          console.log('✅ Payment approved, navigating to success page');
+          navigate('/payment-success');
         }, 100);
       } else {
         // Handle unsuccessful response
