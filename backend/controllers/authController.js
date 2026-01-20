@@ -185,7 +185,7 @@ const updateProfile = async (req, res) => {
     
     if (firstName !== undefined) updatedFields['profile.firstName'] = firstName;
     if (lastName !== undefined) updatedFields['profile.lastName'] = lastName;
-    if (phoneNumber !== undefined) updatedFields['profile.phoneNumber'] = phoneNumber;
+    if (phoneNumber !== undefined) updatedFields.phoneNumber = phoneNumber;
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
