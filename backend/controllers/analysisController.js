@@ -135,6 +135,7 @@ exports.analyzeTransaction = async (req, res) => {
         riskFactors: riskAnalysis.riskFactors,
         detailedReasons: riskAnalysis.detailedReasons,
         breakdown: riskAnalysis.breakdown,
+        analysis: riskAnalysis.analysis, // Include detailed analysis data
         timestamp: decision.timestamp
       }
     });

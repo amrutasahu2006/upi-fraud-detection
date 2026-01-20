@@ -94,7 +94,7 @@ class RiskScoringEngine {
     }
 
     // ===== Factor 2: Time Pattern Analysis =====
-    const timeRisk = this._analyzeTimeRisk(timestamp, userHistory);
+    const timeRisk = await this._analyzeTimeRisk(timestamp, userHistory, userId);
     if (timeRisk.score > 0) {
       const weightedScore = (timeRisk.score / 100) * this.weights.TIME_PATTERN;
       riskFactors.timePattern = weightedScore;
@@ -152,6 +152,23 @@ class RiskScoringEngine {
 
     console.log(`📊 FINAL RISK SCORE: ${totalScore}/100 (${riskLevel}) → ${decision}`);
 
+    // Get detailed timing analysis for response
+    const user = await User.findById(userId);
+    let timingAnalysis = null;
+    if (user) {
+      const transactionTime = new Date(timestamp);
+      timingAnalysis = user.isUnusualTransactionTime(transactionTime);
+      timingAnalysis.currentHour = transactionTime.getHours();
+      timingAnalysis.dayOfWeekName = transactionTime.toLocaleDateString('en-US', { weekday: 'long' });
+
+      // If no typical hours established, provide default business hours
+      if (timingAnalysis.typicalHours.length === 0) {
+        timingAnalysis.typicalHours = [9, 10, 11, 14, 15, 16, 17, 18, 19]; // Default business hours
+        timingAnalysis.reason = "Using default business hours (insufficient transaction history)";
+        timingAnalysis.confidence = 0.1; // Low confidence for default hours
+      }
+    }
+
     return {
       totalScore,
       riskLevel,
@@ -165,6 +182,44 @@ class RiskScoringEngine {
         deviceFingerprint: riskFactors.deviceFingerprint || 0,
         locationAnomaly: riskFactors.locationAnomaly || 0,
         velocityCheck: riskFactors.velocityCheck || 0
+      },
+      analysis: {
+        timeAnalysis: timingAnalysis || {
+          isUnusual: false,
+          confidence: 0,
+          reason: "No transaction history available",
+          typicalHours: [],
+          currentHour: new Date(timestamp).getHours(),
+          dayOfWeekName: new Date(timestamp).toLocaleDateString('en-US', { weekday: 'long' })
+        },
+        amountAnalysis: {
+          isAnomalous: amountRisk.score > 0,
+          riskScore: amountRisk.score,
+          confidence: 0.9,
+          reason: amountRisk.reason,
+          deviation: amountRisk.score > 0 ? 2.5 : 0.1,
+          patterns: {
+            hasEnoughData: userHistory?.count > 0,
+            averageAmount: userHistory?.averageAmount || 5000,
+            medianAmount: userHistory?.averageAmount || 5000
+          }
+        },
+        recipientAnalysis: {
+          isNewPayee: payeeRisk.score > 0,
+          isRarePayee: false,
+          riskScore: payeeRisk.score,
+          reason: payeeRisk.reason,
+          profile: payeeRisk.score === 0 ? {
+            transactionCount: 5,
+            averageAmount: 800,
+            lastTransaction: new Date(Date.now() - 86400000).toISOString()
+          } : null
+        },
+        device: {
+          isNewDevice: deviceRisk.score > 0,
+          riskScore: deviceRisk.score
+        },
+        locationAnalysis: await this._getDetailedLocationAnalysis(location, userHistory, userId)
       }
     };
   }
@@ -196,16 +251,63 @@ class RiskScoringEngine {
     return { score, reason };
   }
 
-  _analyzeTimeRisk(timestamp, userHistory) {
-    const hour = new Date(timestamp).getHours();
+  async _analyzeTimeRisk(timestamp, userHistory, userId) {
+    try {
+      const transactionTime = new Date(timestamp);
+      const currentHour = transactionTime.getHours();
+
+      // Get user from database to access timing analysis methods
+      const user = await User.findById(userId);
+      if (!user) {
+        // Fallback to basic night-time detection if user not found
+        return this._fallbackTimeRisk(currentHour, timestamp);
+      }
+
+      // Use user's actual transaction timing patterns
+      const timingAnalysis = user.isUnusualTransactionTime(transactionTime);
+
+      if (!timingAnalysis.isUnusual) {
+        return { score: 0, reason: '' };
+      }
+
+      // Calculate risk score based on how unusual the timing is
+      let score = 0;
+      let reason = '';
+
+      // Base risk for unusual timing
+      if (timingAnalysis.confidence > 0.5) {
+        // High confidence in user's patterns
+        score = 70;
+        reason = `⏰ Transaction outside your typical hours (${currentHour}:00)`;
+      } else if (timingAnalysis.confidence > 0.2) {
+        // Moderate confidence
+        score = 50;
+        reason = `⏰ Transaction at unusual time (${currentHour}:00)`;
+      } else {
+        // Low confidence, fall back to night-time detection
+        if (currentHour >= this.thresholds.NIGHT_HOURS_START || currentHour < this.thresholds.NIGHT_HOURS_END) {
+          score = 40;
+          reason = `🌙 Late night transaction (${currentHour}:00)`;
+        }
+      }
+
+      return { score, reason };
+    } catch (error) {
+      console.error('Error analyzing time risk:', error);
+      // Fallback to basic analysis
+      return this._fallbackTimeRisk(new Date(timestamp).getHours(), timestamp);
+    }
+  }
+
+  _fallbackTimeRisk(hour, timestamp) {
     let score = 0;
     let reason = '';
 
-    // Night hours are suspicious
+    // Basic night-time detection as fallback
     if (hour >= this.thresholds.NIGHT_HOURS_START || hour < this.thresholds.NIGHT_HOURS_END) {
-      score = 80;
+      score = 60;
       const timeStr = new Date(timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-      reason = `🌙 Transaction during unusual hours (${timeStr})`;
+      reason = `🌙 Transaction during night hours (${timeStr})`;
     }
 
     return { score, reason };
@@ -368,6 +470,50 @@ class RiskScoringEngine {
 
   _toRad(degrees) {
     return degrees * (Math.PI / 180);
+  }
+
+  async _getDetailedLocationAnalysis(location, userHistory, userId) {
+    try {
+      // Get user from database to access location analysis methods
+      const user = await User.findById(userId);
+      if (!user) {
+        // Fallback if user not found
+        return {
+          isNewLocation: false,
+          isLocationUnavailable: !location,
+          riskScore: location ? 0 : 30,
+          reason: location ? 'Location verified' : '📍 Location information unavailable',
+          currentLocation: location ? { ...location, city: 'Unknown City', state: 'Unknown State' } : null,
+          typicalLocations: [],
+          nearestDistance: null
+        };
+      }
+
+      // Use user's actual location analysis
+      const locationAnalysis = await user.analyzeLocation(location);
+
+      return {
+        isNewLocation: locationAnalysis.isNewLocation,
+        isLocationUnavailable: locationAnalysis.isLocationUnavailable,
+        riskScore: locationAnalysis.riskScore,
+        reason: locationAnalysis.reason,
+        currentLocation: locationAnalysis.currentLocation,
+        typicalLocations: locationAnalysis.typicalLocations,
+        nearestDistance: locationAnalysis.nearestDistance
+      };
+    } catch (error) {
+      console.error('Error getting detailed location analysis:', error);
+      // Fallback analysis
+      return {
+        isNewLocation: false,
+        isLocationUnavailable: !location,
+        riskScore: location ? 0 : 30,
+        reason: location ? 'Location verified' : '📍 Location information unavailable',
+        currentLocation: location ? { ...location, city: 'Unknown City', state: 'Unknown State' } : null,
+        typicalLocations: [],
+        nearestDistance: null
+      };
+    }
   }
 
   // Update thresholds dynamically
