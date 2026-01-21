@@ -2,14 +2,52 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, X, MessageCircle, ShieldAlert } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
+import { useAuth } from "../context/AuthContext";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
 
 const SecurityWarning = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const { transaction, analysisResult, riskAnalysis } = useTransaction();
 
   // Get data from analysis result (preferred) or fallback to riskAnalysis
   const result = analysisResult || riskAnalysis;
+  
+  // Handle proceed anyway - confirm the transaction on backend
+  const handleProceedAnyway = async () => {
+    try {
+      if (!result?.transactionId) {
+        console.warn('No transaction ID available, proceeding without confirmation');
+        navigate('/payment-success');
+        return;
+      }
+
+      console.log('📤 Confirming transaction:', result.transactionId);
+      
+      const response = await fetch(`http://localhost:5000/api/transactions/confirm/${result.transactionId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        console.error('❌ Failed to confirm transaction:', data.message);
+        // Still proceed to success page even if confirmation fails
+      } else {
+        console.log('✅ Transaction confirmed successfully:', data.data);
+      }
+
+      navigate('/payment-success');
+    } catch (error) {
+      console.error('Error confirming transaction:', error);
+      // Still proceed to success even if there's an error
+      navigate('/payment-success');
+    }
+  };
   
   // Convert backend riskFactors (object with weights) to array of factor names
   const backendRiskFactors = result?.riskFactors ?? {};
@@ -128,7 +166,7 @@ const SecurityWarning = () => {
                     <MessageCircle size={18} />
                     <span>Ask bot for help</span>
                 </button>
-                <button onClick={() => navigate('/payment-success')} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer">
+                <button onClick={handleProceedAnyway} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer">
                     Proceed Anyway
                 </button>
             </div>
