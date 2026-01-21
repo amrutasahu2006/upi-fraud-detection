@@ -128,7 +128,7 @@ const SecurityWarning = () => {
                     <MessageCircle size={18} />
                     <span>Ask bot for help</span>
                 </button>
-                <button onClick={() => navigate('/payment')} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer">
+                <button onClick={() => navigate('/payment-success')} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer">
                     Proceed Anyway
                 </button>
             </div>

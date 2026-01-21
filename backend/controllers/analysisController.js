@@ -93,7 +93,8 @@ exports.analyzeTransaction = async (req, res) => {
       decision: decision.action,
       decisionMetadata: decision.metadata,
       status: decision.action === 'BLOCK' ? 'blocked' : 
-              decision.action === 'DELAY' ? 'pending' : 'pending',
+              decision.action === 'DELAY' ? 'pending' : 
+              decision.action === 'APPROVE' ? 'completed' : 'pending',
       createdAt: timestamp || new Date()
     });
 

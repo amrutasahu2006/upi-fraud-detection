@@ -103,7 +103,7 @@ function PaymentSuccess() {
             </button>
 
             <button
-              onClick={() => navigate('/fraud-analytics')}
+              onClick={() => navigate('/transaction-history')}
               className="w-full bg-white border-2 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2 cursor-pointer"
             >
               <FileText size={20} />

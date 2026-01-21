@@ -14,6 +14,7 @@ import TransactionRiskDetails from "./pages/TransactionRiskDetails";
 import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
 import FraudAnalytics from "./pages/FraudAnalytics";
+import TransactionHistory from "./pages/TransactionHistory";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -109,6 +110,16 @@ function App() {
 
             {/* Analytics */}
             <Route path="/fraud-analytics" element={<FraudAnalytics />} />
+
+            {/* History */}
+            <Route
+              path="/transaction-history"
+              element={
+                <ProtectedRoute>
+                  <TransactionHistory />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Transaction Flow */}
             <Route path="/payment" element={<UPIPayment />} />

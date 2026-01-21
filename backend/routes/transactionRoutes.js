@@ -124,50 +124,32 @@ router.post('/', protect, async (req, res) => {
 });
 
 // @route   GET /api/transactions
-// @desc    Get user transactions
+// @desc    Get user transactions (completed only)
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
     const { limit = 50, offset = 0, startDate, endDate } = req.query;
     
-    let query = { userId: req.user.id };
+    // Only fetch completed transactions
+    let query = { userId: req.user.id, status: 'completed' };
     
     // Date filtering
     if (startDate || endDate) {
-      query.timestamp = {};
-      if (startDate) query.timestamp.$gte = new Date(startDate);
-      if (endDate) query.timestamp.$lte = new Date(endDate);
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-    
-    let transactions = user.transactions;
-    
-    // Apply date filtering
-    if (startDate || endDate) {
-      transactions = transactions.filter(tx => {
-        const txDate = new Date(tx.timestamp);
-        let isValid = true;
-        if (startDate) isValid = isValid && txDate >= new Date(startDate);
-        if (endDate) isValid = isValid && txDate <= new Date(endDate);
-        return isValid;
-      });
-    }
-    
-    // Sort by timestamp descending
-    transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-    // Apply pagination
-    const total = transactions.length;
-    const startIndex = parseInt(offset);
-    const endIndex = startIndex + parseInt(limit);
-    transactions = transactions.slice(startIndex, endIndex);
+    // Fetch from Transaction model (not user.transactions array)
+    const Transaction = require('../models/Transaction');
+    const total = await Transaction.countDocuments(query);
+    const transactions = await Transaction.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(offset))
+      .lean();
+
+    console.log('📋 Fetching COMPLETED transactions for user', req.user.id, '- Found:', transactions.length);
 
     res.json({
       success: true,
