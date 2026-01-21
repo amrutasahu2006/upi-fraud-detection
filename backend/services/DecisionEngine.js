@@ -58,9 +58,9 @@ class DecisionEngine {
    * @returns {Object} Decision with action, message, and metadata
    */
   makeDecision(riskAnalysis, options = {}) {
-    const { totalScore, riskLevel, riskFactors, detailedReasons, decision: suggestedDecision } = riskAnalysis;
+    const { totalScore, riskLevel, riskFactors, detailedReasons, decision: suggestedDecision, amount } = riskAnalysis;
 
-    console.log('🎯 Decision Engine: Score', totalScore, '→ Suggested:', suggestedDecision);
+    console.log('🎯 Decision Engine: Score', totalScore, '→ Suggested:', suggestedDecision, '→ Amount:', amount);
 
     // Check for overrides
     if (options.forceApprove && options.approvedBy) {
@@ -89,6 +89,26 @@ class DecisionEngine {
         trusted: true,
         reason: 'Recipient on whitelist',
         reasons: detailedReasons
+      });
+    }
+
+    // Auto-approve low amount transactions (< 1000)
+    if (amount && amount < 1000) {
+      console.log('✅ Auto-approve: Amount below 1000');
+      return this._buildDecision('APPROVE', totalScore, riskLevel, {
+        ...riskFactors,
+        autoApproveReason: 'Amount below 1000',
+        reasons: ['Amount is below 1000 rupees - automatically approved']
+      });
+    }
+
+    // Auto-approve low risk score (< 30)
+    if (totalScore < 30) {
+      console.log('✅ Auto-approve: Risk score below 30');
+      return this._buildDecision('APPROVE', totalScore, riskLevel, {
+        ...riskFactors,
+        autoApproveReason: 'Risk score below 30',
+        reasons: detailedReasons.length > 0 ? detailedReasons : ['Risk score below 30 - automatically approved']
       });
     }
 

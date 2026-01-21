@@ -173,6 +173,7 @@ class RiskScoringEngine {
       totalScore,
       riskLevel,
       decision,
+      amount,
       riskFactors,
       detailedReasons,
       breakdown: {

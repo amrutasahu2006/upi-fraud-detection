@@ -122,6 +122,9 @@ exports.analyzeTransaction = async (req, res) => {
       success: true,
       data: {
         transactionId: transaction._id,
+        amount,
+        recipientVPA: finalRecipientVPA,
+        recipientName: finalRecipientName,
         riskScore: riskAnalysis.totalScore,
         riskLevel: riskAnalysis.riskLevel,
         decision: decision.action,

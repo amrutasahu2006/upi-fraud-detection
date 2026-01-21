@@ -65,14 +65,14 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.ok && data.success) {
         const { token, user } = data;
         localStorage.setItem('token', token);
         setToken(token);
         setUser(user);
         return { success: true, user };
       } else {
-        return { success: false, message: data.message };
+        return { success: false, message: data.message || 'Login failed' };
       }
     } catch (error) {
       console.error('Login error:', error);
