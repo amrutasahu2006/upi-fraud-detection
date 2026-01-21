@@ -10,7 +10,7 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: '',
   });
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   
   const { register } = useAuth();
@@ -26,22 +26,22 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setErrors({});
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setErrors({ confirmPassword: 'Passwords do not match' });
       setLoading(false);
       return;
     }
 
     const result = await register(formData);
-    
+
     if (result.success) {
       navigate('/');
     } else {
-      setError(result.message || 'Registration failed');
+      setErrors(result.errors || {});
     }
-    
+
     setLoading(false);
   };
 
@@ -52,12 +52,6 @@ const RegisterPage = () => {
           <h1 className="text-3xl font-bold text-gray-800">Create Account</h1>
           <p className="text-gray-600 mt-2">Join us today</p>
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -70,10 +64,15 @@ const RegisterPage = () => {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                errors.username ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Choose a username"
               required
             />
+            {errors.username && (
+              <p className="mt-1 text-sm text-red-600">{errors.username}</p>
+            )}
           </div>
 
           <div className="mb-4">
@@ -86,10 +85,41 @@ const RegisterPage = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Enter your email"
               required
             />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            )}
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              Phone Number
+            </label>
+            <div className="relative">
+                <span className="absolute left-3 top-2 text-gray-500 select-none">+91</span>
+                <input
+                type="tel"
+                id="phoneNumber"
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                  errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="9876543210"
+                pattern="[0-9]{10}"
+                maxLength="10"
+                required
+                />
+            </div>
+            {errors.phoneNumber && (
+              <p className="mt-1 text-sm text-red-600">{errors.phoneNumber}</p>
+            )}
           </div>
 
           <div className="mb-4">
@@ -123,10 +153,15 @@ const RegisterPage = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Create a password"
               required
             />
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            )}
           </div>
 
           <div className="mb-6">
@@ -139,10 +174,15 @@ const RegisterPage = () => {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="Confirm your password"
               required
             />
+            {errors.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+            )}
           </div>
 
           <button

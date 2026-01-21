@@ -1,5 +1,5 @@
 const validateRegisterInput = (data) => {
-  const { username, email, password, confirmPassword } = data;
+  const { username, email, phoneNumber, password, confirmPassword } = data;
   const errors = {};
 
   // Username validation

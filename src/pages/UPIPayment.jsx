@@ -13,7 +13,7 @@ function UPIPaymentClean() {
   const [note, setNote] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
-  const { startTransaction, setAnalysisResult, setIsAnalyzing } = useTransaction();
+  const { startTransaction, setAnalysisResult, setIsAnalyzing, setUserLocation } = useTransaction();
 
   const amounts = [500, 1000, 2000, 5000];
   const quickContacts = [
@@ -21,6 +21,36 @@ function UPIPaymentClean() {
     { name: "Priya", upi: "priya@okicici", color: "bg-purple-100 text-purple-700" },
     { name: "Amit", upi: "amit@oksbi", color: "bg-blue-100 text-blue-700" },
   ];
+
+  // Get user's current location
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by this browser'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: new Date().toISOString()
+          });
+        },
+        (error) => {
+          console.warn('Location access denied or failed:', error);
+          resolve(null); // Resolve with null instead of rejecting
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000 // 5 minutes
+        }
+      );
+    });
+  };
 
   // Handle payment submission with risk analysis
   const handlePayment = async () => {
@@ -31,45 +61,53 @@ function UPIPaymentClean() {
 
     setIsProcessing(true);
     setIsAnalyzing(true);
-
-    // Detect if payee is new (not in quick contacts)
-    const isNewPayee = !quickContacts.some(c => c.upi === upiId);
-    
-    // Detect if amount is high
-    const isHighAmount = selectedAmount > 10000;
-    
-    // Detect if time is unusual (before 6 AM or after 10 PM)
-    const currentHour = new Date().getHours();
-    const isUnusualTime = currentHour < 6 || currentHour > 22;
-
-    // Create transaction data with proper risk factor detection
-    const transactionData = {
-      amount: selectedAmount,
-      recipient: {
-        name: upiId.split('@')[0],
-        upi: upiId,
-        isNewPayee: isNewPayee
-      },
-      note,
-      timestamp: new Date().toISOString(),
-      // Explicitly pass risk factors - IMPORTANT!
-      isNewPayee: isNewPayee,
-      isHighAmount: isHighAmount,
-      isNewDevice: false,
-      isUnusualTime: isUnusualTime,
-      isNewLocation: false
-    };
-
-    // Store transaction in context
-    startTransaction(transactionData);
-
     try {
+      // Get user's location for risk analysis
+      const userLocation = await getCurrentLocation();
+      if (userLocation) {
+        setUserLocation(userLocation);
+        console.log('📍 User location captured:', userLocation);
+      } else {
+        console.warn('⚠️ Could not get user location - location analysis will be limited');
+      }
+
+      // Detect if payee is new (not in quick contacts)
+      const isNewPayee = !quickContacts.some(c => c.upi === upiId);
+
+      // Detect if amount is high
+      const isHighAmount = selectedAmount > 10000;
+
+      // Detect if time is unusual (before 6 AM or after 10 PM)
+      const currentHour = new Date().getHours();
+      const isUnusualTime = currentHour < 6 || currentHour > 22;
+
+      // Create transaction data with proper risk factor detection
+      const transactionData = {
+        amount: selectedAmount,
+        recipient: {
+          name: upiId.split('@')[0],
+          upi: upiId,
+          isNewPayee: isNewPayee
+        },
+        location: userLocation, // Include location in transaction data
+        note,
+        timestamp: new Date().toISOString(),
+        // Explicitly pass risk factors - IMPORTANT!
+        isNewPayee: isNewPayee,
+        isHighAmount: isHighAmount,
+        isNewDevice: false,
+        isUnusualTime: isUnusualTime,
+        isNewLocation: false
+      };
+
+      // Store transaction in context
+      startTransaction(transactionData);
       // Call backend API (mocked for now)
       console.log("📤 Sending transaction for analysis:", transactionData);
       const result = await analyzeTransaction(transactionData);
       console.log("📥 Received risk analysis:", result);
       console.log("📥 Result structure check - success:", result?.success, "data:", result?.data);
-      
+
       setIsAnalyzing(false);
       setIsProcessing(false);
 
