@@ -31,7 +31,7 @@ exports.analyzeTransaction = async (req, res) => {
     const finalDeviceId = deviceId || 'unknown-device';
 
     console.log('🔬 Starting Enhanced Risk Analysis:', {
-      userId,
+      userId: userId.toString(),
       amount,
       recipientVPA: finalRecipientVPA,
       timestamp: timestamp || new Date()
@@ -99,6 +99,14 @@ exports.analyzeTransaction = async (req, res) => {
     });
 
     await transaction.save();
+    console.log('💾 Transaction Saved:', {
+      transactionId: transaction._id,
+      userId: transaction.userId.toString(),
+      amount: transaction.amount,
+      recipientVPA: transaction.recipientVPA,
+      status: transaction.status,
+      decision: transaction.decision
+    });
 
     // Step 6: Send notifications based on decision
     if (['BLOCK', 'DELAY', 'WARN'].includes(decision.action)) {

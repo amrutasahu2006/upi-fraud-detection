@@ -130,9 +130,11 @@ router.get('/', protect, async (req, res) => {
   try {
     const { limit = 50, offset = 0, startDate, endDate } = req.query;
     
-    // Only fetch completed transactions
-    let query = { userId: req.user.id, status: 'completed' };
+    // Fetch all transactions (completed, pending, blocked, etc.)
+    let query = { userId: req.user.id };
     
+    console.log('🔍 Fetching transactions for userId:', req.user.id.toString());
+
     // Date filtering
     if (startDate || endDate) {
       query.createdAt = {};
@@ -149,7 +151,16 @@ router.get('/', protect, async (req, res) => {
       .skip(parseInt(offset))
       .lean();
 
-    console.log('📋 Fetching COMPLETED transactions for user', req.user.id, '- Found:', transactions.length);
+    console.log('📋 Fetching ALL transactions for user', req.user.id.toString(), '- Found:', transactions.length);
+    if (transactions.length > 0) {
+      console.log('📝 First transaction:', {
+        id: transactions[0]._id,
+        userId: transactions[0].userId.toString(),
+        amount: transactions[0].amount,
+        status: transactions[0].status,
+        recipientVPA: transactions[0].recipientVPA
+      });
+    }
 
     res.json({
       success: true,
@@ -292,6 +303,53 @@ router.delete('/:id', protect, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while deleting transaction'
+    });
+  }
+});
+
+// @route   POST /api/transactions/confirm/:transactionId
+// @desc    Confirm a warned/pending transaction (user proceeds anyway)
+// @access  Private
+router.post('/confirm/:transactionId', protect, async (req, res) => {
+  try {
+    const Transaction = require('../models/Transaction');
+    
+    console.log('✅ Confirming transaction:', req.params.transactionId);
+    
+    // Find the transaction
+    const transaction = await Transaction.findOne({
+      _id: req.params.transactionId,
+      userId: req.user.id
+    });
+    
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found'
+      });
+    }
+    
+    // Update status to completed (user proceeded anyway)
+    transaction.status = 'completed';
+    await transaction.save();
+    
+    console.log('💾 Transaction confirmed:', {
+      transactionId: transaction._id,
+      userId: transaction.userId.toString(),
+      status: transaction.status
+    });
+    
+    res.json({
+      success: true,
+      message: 'Transaction confirmed successfully',
+      data: transaction
+    });
+    
+  } catch (error) {
+    console.error('Confirm transaction error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while confirming transaction'
     });
   }
 });

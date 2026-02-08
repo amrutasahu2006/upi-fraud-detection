@@ -102,6 +102,30 @@ export default function TransactionHistory() {
                               ? 'bg-yellow-100 text-yellow-700'
                               : 'bg-green-100 text-green-700';
 
+                      // Status badge styling - based on decision if completed, otherwise based on status
+                      let statusBadge, statusLabel;
+                      
+                      if (tx.status === 'completed') {
+                        // If completed but was warned/delayed, show "Warned"
+                        if (tx.decision === 'DELAY' || tx.decision === 'WARN') {
+                          statusBadge = 'bg-yellow-100 text-yellow-700';
+                          statusLabel = 'Warned';
+                        } else {
+                          // Originally approved or auto-approved
+                          statusBadge = 'bg-green-100 text-green-700';
+                          statusLabel = 'Approved';
+                        }
+                      } else if (tx.status === 'pending') {
+                        statusBadge = 'bg-yellow-100 text-yellow-700';
+                        statusLabel = 'Warned';
+                      } else if (tx.status === 'blocked') {
+                        statusBadge = 'bg-red-100 text-red-700';
+                        statusLabel = 'Blocked';
+                      } else {
+                        statusBadge = 'bg-slate-100 text-slate-700';
+                        statusLabel = 'Processing';
+                      }
+
                       return (
                         <div
                           key={tx._id || tx.transactionId}
@@ -120,7 +144,10 @@ export default function TransactionHistory() {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-right flex flex-col items-end gap-2">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge}`}>
+                              {statusLabel}
+                            </span>
                             {risk !== null && (
                               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${riskBadge}`}>
                                 Risk {risk}%
