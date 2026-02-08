@@ -1,7 +1,12 @@
-- [x] Create RecipientProfiler.js service for recipient history profiling
-- [x] Integrate recipient analysis into real-time monitoring
-- [x] Update analysis routes for comprehensive AI-driven risk assessment
-- [x] Add pre-analysis endpoint for real-time transaction monitoring
-=======
-- [x] Create AmountAnomalyDetector.js service for AI-driven amount anomaly detection
-- [x] Create RecipientProfiler.js service for recipient history profiling
+# TODO: Fix 401 Unauthorized errors in Fraud Analytics
+
+## Issue
+- FraudAnalytics page makes requests to admin-only API endpoints but route is not protected
+- Non-admin users get 401 errors when accessing fraud analytics
+
+## Plan
+- [ ] Protect `/fraud-analytics` route in App.jsx with admin role requirement
+
+## Testing
+- [ ] Verify admin users can access fraud analytics
+- [ ] Verify non-admin users are redirected to unauthorized page

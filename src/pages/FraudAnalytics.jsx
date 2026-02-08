@@ -1,8 +1,61 @@
+import { useState, useEffect } from "react";
 import FilterPill from "../components/FilterPill";
 import StatCard from "../components/StatCard";
 import RecentFraudItem from "../components/RecentFraudItem";
+import FraudHeatmap from "../components/FraudHeatmap";
 
 export default function FraudAnalytics() {
+  const [stats, setStats] = useState({
+    totalFraudAttempts: 0,
+    blockedTransactions: 0,
+    successRate: 0,
+    avgRiskScore: 0
+  });
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDateRange, setSelectedDateRange] = useState("Last 30 days");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        // Build query parameters based on filters
+        const daysMap = {
+          "Last 7 days": 7,
+          "Last 30 days": 30,
+          "Last 90 days": 90
+        };
+
+        const days = daysMap[selectedDateRange] || 30;
+
+        const [statsResponse, activityResponse] = await Promise.all([
+          fetch(`http://localhost:5000/api/admin/fraud-stats?days=${days}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          fetch('http://localhost:5000/api/admin/recent-fraud-activity', {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        ]);
+
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats(statsData.data);
+        }
+
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          setRecentActivity(activityData.data);
+        }
+      } catch (error) {
+        console.error('Error fetching fraud analytics data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedDateRange]);
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
@@ -22,12 +75,11 @@ export default function FraudAnalytics() {
           <div className="space-y-2">
             <p className="text-xs md:text-sm font-semibold text-gray-700">Filters</p>
             <div className="flex gap-2 flex-wrap">
-              <FilterPill label="Date range: Last 30 days" />
-              <FilterPill label="All" active />
-              <FilterPill label="Phishing" />
-              <FilterPill label="OTP Fraud" />
-              <FilterPill label="Scam" />
-              <FilterPill label="Technical" />
+              <FilterPill
+                label="Date range: Last 30 days"
+                active={selectedDateRange === "Last 30 days"}
+                onClick={() => setSelectedDateRange("Last 30 days")}
+              />
             </div>
           </div>
 
@@ -35,25 +87,25 @@ export default function FraudAnalytics() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard
               title="Total Fraud Attempts"
-              value="12,345"
+              value={stats.totalFraudAttempts?.toLocaleString() || "0"}
               change="+5.2%"
               positive
             />
             <StatCard
               title="Blocked Transactions"
-              value="8,765"
+              value={stats.blockedTransactions?.toLocaleString() || "0"}
               change="+8.1%"
               positive
             />
             <StatCard
               title="Success Rate (Blocking)"
-              value="71.0%"
+              value={`${stats.successRate || 0}%`}
               change="+1.5%"
               positive
             />
             <StatCard
               title="Average Risk Score"
-              value="68.5"
+              value={stats.avgRiskScore?.toString() || "0"}
               change="-0.3%"
               positive={false}
             />
@@ -68,11 +120,7 @@ export default function FraudAnalytics() {
               Regions with highest reported UPI fraud activity.
             </p>
 
-            <img
-              src="src/public/india-fraud-map.png"
-              alt="Fraud hotspots in India"
-              className="w-full rounded-md object-contain"
-            />
+            <FraudHeatmap selectedDateRange={selectedDateRange} />
           </div>
 
           {/* Recent Fraud Activity */}
@@ -81,30 +129,21 @@ export default function FraudAnalytics() {
               Recent Fraud Activity
             </p>
 
-            <RecentFraudItem
-              id="UPI12345678"
-              date="2023-10-26"
-              type="Phishing"
-              risk={92}
-            />
-            <RecentFraudItem
-              id="UPI98765432"
-              date="2023-10-25"
-              type="OTP Fraud"
-              risk={88}
-            />
-            <RecentFraudItem
-              id="UPI12233444"
-              date="2023-10-24"
-              type="Scam"
-              risk={75}
-            />
-            <RecentFraudItem
-              id="UPI55667788"
-              date="2023-10-23"
-              type="Technical"
-              risk={68}
-            />
+            {loading ? (
+              <div className="text-center py-4">Loading...</div>
+            ) : recentActivity.length > 0 ? (
+              recentActivity.map((item, index) => (
+                <RecentFraudItem
+                  key={index}
+                  id={item.id}
+                  date={item.date}
+                  type={item.type}
+                  risk={item.risk}
+                />
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">No recent fraud activity</div>
+            )}
           </div>
 
         </main>

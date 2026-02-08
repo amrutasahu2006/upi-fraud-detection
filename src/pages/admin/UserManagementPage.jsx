@@ -25,8 +25,8 @@ const UserManagementPage = () => {
       const data = await response.json();
 
       if (data.success) {
-        setUsers(data.users);
-        setTotalPages(data.totalPages);
+        setUsers(data.data);
+        setTotalPages(data.pagination.totalPages);
       } else {
         setError(data.message || 'Failed to fetch users');
       }

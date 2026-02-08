@@ -75,26 +75,50 @@ export default function Header() {
         {/* Navigation Tabs */}
         <nav className="mr-4">
           <div className="flex items-center gap-12">
-            {[
-              { to: "/payment", label: "Pay", icon: PayIcon },
-              { to: "/safety", label: "Safety", icon: SafetyIcon },
-              { to: "/risk-details", label: "Insights", icon: InsightsIcon },
-              { to: "/transaction-history", label: "History", icon: HistoryIcon },
-              { to: "/privacy-settings", label: "Settings", icon: SettingsIcon },
-            ].map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex flex-col items-center py-3 ${
-                    isActive ? "text-blue-600" : "text-gray-500"
-                  }`
-                }
-              >
-                <Icon />
-                <span className="text-xs mt-1">{label}</span>
-              </NavLink>
-            ))}
+            {user?.role === "admin" ? (
+              // Admin navigation
+              [
+                { to: "/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
+                { to: "/admin/users", label: "Users", icon: UsersIcon },
+                { to: "/admin/risk-management", label: "Risk", icon: RiskIcon },
+                { to: "/fraud-analytics", label: "Analytics", icon: AnalyticsIcon },
+              ].map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center py-3 ${
+                      isActive ? "text-blue-600" : "text-gray-500"
+                    }`
+                  }
+                >
+                  <Icon />
+                  <span className="text-xs mt-1">{label}</span>
+                </NavLink>
+              ))
+            ) : (
+              // User navigation
+              [
+                { to: "/payment", label: "Pay", icon: PayIcon },
+                { to: "/safety", label: "Safety", icon: SafetyIcon },
+                { to: "/risk-details", label: "Insights", icon: InsightsIcon },
+                { to: "/transaction-history", label: "History", icon: HistoryIcon },
+                { to: "/privacy-settings", label: "Settings", icon: SettingsIcon },
+              ].map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center py-3 ${
+                      isActive ? "text-blue-600" : "text-gray-500"
+                    }`
+                  }
+                >
+                  <Icon />
+                  <span className="text-xs mt-1">{label}</span>
+                </NavLink>
+              ))
+            )}
           </div>
         </nav>
       </div>
@@ -141,6 +165,39 @@ function SettingsIcon() {
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.39 15.5A8 8 0 0112.5 20l-1.77-.35" />
+    </svg>
+  );
+}
+
+function DashboardIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5a2 2 0 012-2h4a2 2 0 012 2v2H8V5z" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+    </svg>
+  );
+}
+
+function RiskIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+    </svg>
+  );
+}
+
+function AnalyticsIcon() {
+  return (
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>
   );
 }

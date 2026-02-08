@@ -87,6 +87,11 @@ const transactionSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  fraudType: {
+    type: String,
+    enum: ['phishing', 'otp_fraud', 'scam', 'technical', 'other'],
+    default: 'other'
+  },
   deviceInfo: {
     userAgent: String,
     ipAddress: String,

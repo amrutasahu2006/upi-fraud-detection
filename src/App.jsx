@@ -1,7 +1,7 @@
 import { requestPermission, messaging } from "./firebase";
 import { onMessage } from "firebase/messaging";
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Pages
 import SecurityChatbot from "./pages/SecurityChatbot";
@@ -25,10 +25,20 @@ import ProfilePage from "./pages/auth/ProfilePage";
 // Admin pages
 import UserManagementPage from "./pages/admin/UserManagementPage";
 import RiskManagementPanel from "./pages/admin/RiskManagementPanel";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 // Components
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+// Contexts (for RoleBasedRedirect)
+import { useAuth } from "./context/AuthContext";
+
+// Role-based redirect component
+function RoleBasedRedirect() {
+  const { user } = useAuth();
+  return user?.role === "admin" ? <Navigate to="/admin/dashboard" replace /> : <UPIPayment />;
+}
 
 // Contexts
 import { AuthProvider } from "./context/AuthContext";
@@ -98,8 +108,17 @@ function App() {
               }
             />
 
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Main Landing */}
-            <Route path="/" element={<UPIPayment />} />
+            <Route path="/" element={<RoleBasedRedirect />} />
             <Route path="/security-warning" element={<SecurityWarning />} />
             <Route path="/chatbot" element={<SecurityChatbot />} />
 
@@ -109,7 +128,14 @@ function App() {
             <Route path="/privacy-settings" element={<PrivacySettings />} />
 
             {/* Analytics */}
-            <Route path="/fraud-analytics" element={<FraudAnalytics />} />
+            <Route
+              path="/fraud-analytics"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <FraudAnalytics />
+                </ProtectedRoute>
+              }
+            />
 
             {/* History */}
             <Route
