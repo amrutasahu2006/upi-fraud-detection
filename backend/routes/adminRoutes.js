@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate, authorizeRoles } = require('../middleware/auth');
-const { getAllUsers, getUserById, updateUserRole, deleteUser, toggleUserStatus, getFraudHotspots, getFraudStats, getRecentFraudActivity } = require('../controllers/adminController');
+const { getAllUsers, getUserById, updateUserRole, deleteUser, toggleUserStatus, getFraudHotspots, getFraudStats, getRecentFraudActivity, getDashboardSummary } = require('../controllers/adminController');
 
 // Admin routes - only accessible by admin users
 router.use(authenticate, authorizeRoles('admin'));
@@ -20,5 +20,7 @@ router.route('/users/:id')
   .delete(deleteUser); // Delete user
 
 router.patch('/users/:id/toggle-status', toggleUserStatus); // Activate/deactivate user
+
+router.get('/dashboard-summary', getDashboardSummary); // Get dashboard summary data
 
 module.exports = router;

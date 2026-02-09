@@ -384,6 +384,97 @@ const getRecentFraudActivity = async (req, res) => {
   }
 };
 
+// Get dashboard summary data
+const getDashboardSummary = async (req, res) => {
+  try {
+    // User statistics
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.countDocuments({ isActive: true });
+    const adminUsers = await User.countDocuments({ role: 'admin' });
+    const recentUsers = await User.countDocuments({
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } // Last 7 days
+    });
+
+    // Transaction statistics (last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const totalTransactions = await Transaction.countDocuments({
+      timestamp: { $gte: thirtyDaysAgo }
+    });
+    const blockedTransactions = await Transaction.countDocuments({
+      status: 'blocked',
+      timestamp: { $gte: thirtyDaysAgo }
+    });
+
+    // Fraud trends (last 7 days, daily)
+    const fraudTrends = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+
+      const blockedCount = await Transaction.countDocuments({
+        status: 'blocked',
+        timestamp: { $gte: startOfDay, $lte: endOfDay }
+      });
+
+      fraudTrends.push({
+        date: startOfDay.toISOString().split('T')[0],
+        blocked: blockedCount
+      });
+    }
+
+    // Risk level distribution
+    const riskLevels = await Transaction.aggregate([
+      { $match: { timestamp: { $gte: thirtyDaysAgo } } },
+      {
+        $group: {
+          _id: '$riskLevel',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const riskDistribution = {
+      LOW: 0,
+      MEDIUM: 0,
+      HIGH: 0,
+      CRITICAL: 0
+    };
+
+    riskLevels.forEach(level => {
+      riskDistribution[level._id] = level.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        users: {
+          total: totalUsers,
+          active: activeUsers,
+          admins: adminUsers,
+          recent: recentUsers
+        },
+        transactions: {
+          total: totalTransactions,
+          blocked: blockedTransactions
+        },
+        fraudTrends,
+        riskDistribution
+      },
+      metadata: {
+        lastUpdated: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Get dashboard summary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch dashboard summary'
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -392,5 +483,6 @@ module.exports = {
   toggleUserStatus,
   getFraudHotspots,
   getFraudStats,
-  getRecentFraudActivity
+  getRecentFraudActivity,
+  getDashboardSummary
 };
