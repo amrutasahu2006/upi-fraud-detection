@@ -16,6 +16,9 @@ const alertRoutes = require('./routes/alertRoutes');
 const blacklistRoutes = require('./routes/blacklistRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
+// Import Redis connection
+const { connectRedis } = require('./config/redis');
+
 const app = express();
 
 // Rate limiting
@@ -43,6 +46,9 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/lists', blacklistRoutes);
+
+// New blacklist API routes (NPCI-like)
+app.use('/api/blacklist', blacklistRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -72,6 +78,9 @@ const connectDB = require('./config/db');
 const startServer = async () => {
   try {
     await connectDB();
+    
+    // Connect to Redis (optional - app works without Redis)
+    await connectRedis();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

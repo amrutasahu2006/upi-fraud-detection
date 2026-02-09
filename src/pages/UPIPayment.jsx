@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 import { analyzeTransaction } from "../services/mockApi";
+import { useAuth } from "../context/AuthContext";
 
 function UPIPaymentClean() {
   const [selectedAmount, setSelectedAmount] = useState(500);
@@ -14,6 +15,7 @@ function UPIPaymentClean() {
   const [isProcessing, setIsProcessing] = useState(false);
   const navigate = useNavigate();
   const { startTransaction, setAnalysisResult, setIsAnalyzing, setUserLocation } = useTransaction();
+  const { token } = useAuth();
 
   const amounts = [500, 1000, 2000, 5000];
   const quickContacts = [
@@ -61,7 +63,29 @@ function UPIPaymentClean() {
 
     setIsProcessing(true);
     setIsAnalyzing(true);
+    
     try {
+      // Step 0: Check VPA blacklist BEFORE risk analysis
+      console.log('🔍 Checking VPA blacklist for:', upiId);
+      const blacklistResponse = await fetch(`http://localhost:5000/api/blacklist/check?vpa=${encodeURIComponent(upiId)}`);
+      const blacklistData = await blacklistResponse.json();
+      
+      console.log('📋 Blacklist check result:', blacklistData);
+
+      // Block transaction if VPA is blacklisted
+      if (blacklistData.flagged) {
+        setIsAnalyzing(false);
+        setIsProcessing(false);
+        alert(`⚠️ TRANSACTION BLOCKED\n\nThis recipient has been flagged for ${blacklistData.reason}.\n\nRisk Level: ${blacklistData.risk_level.toUpperCase()}\nConfidence: ${blacklistData.confidence_score}%\n\nPlease verify recipient details or contact support.`);
+        return;
+      }
+
+      // If whitelisted, show trust indicator
+      if (blacklistData.whitelisted) {
+        console.log('✅ Recipient is whitelisted (trusted merchant)');
+      }
+
+      // Continue with existing risk analysis
       // Get user's location for risk analysis
       const userLocation = await getCurrentLocation();
       if (userLocation) {
@@ -84,6 +108,7 @@ function UPIPaymentClean() {
       // Create transaction data with proper risk factor detection
       const transactionData = {
         amount: selectedAmount,
+        payeeUpiId: upiId, // Add for backend VPA validation
         recipient: {
           name: upiId.split('@')[0],
           upi: upiId,
