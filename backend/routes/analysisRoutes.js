@@ -192,7 +192,8 @@ router.get('/user-patterns', protect, async (req, res) => {
 // @route   POST /api/analysis/analyze
 // @desc    Analyze transaction with comprehensive risk scoring
 // @access  Private
-router.post('/analyze', protect, analyzeTransaction);
+const { validateVPABeforePayment } = require('../middleware/vpaValidator');
+router.post('/analyze', protect, validateVPABeforePayment, analyzeTransaction);
 
 // @route   GET /api/analysis/thresholds
 // @desc    Get current risk thresholds configuration

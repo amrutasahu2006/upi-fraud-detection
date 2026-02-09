@@ -3,8 +3,29 @@ const express = require('express');
 const router = express.Router();
 const BlacklistWhitelist = require('../models/BlacklistWhitelist');
 const { protect, adminOnly } = require('../middleware/auth');
+const blacklistController = require('../controllers/blacklistController');
 
-// ===== BLACKLIST ROUTES =====
+// ===== VPA BLACKLIST API (NPCI-like) =====
+
+// Check if VPA is blacklisted (with Redis cache)
+router.get('/check', blacklistController.checkVPA);
+
+// Report suspicious VPA (community reporting)
+router.post('/report', protect, blacklistController.reportVPA);
+
+// Get all blacklisted VPAs (admin only)
+router.get('/all', protect, adminOnly, blacklistController.getAllBlacklisted);
+
+// Update blacklist status (admin only)
+router.put('/:id/status', protect, adminOnly, blacklistController.updateBlacklistStatus);
+
+// Remove from blacklist (admin only)
+router.delete('/:id', protect, adminOnly, blacklistController.removeFromBlacklist);
+
+// Batch add to blacklist - NPCI feed simulation (admin only)
+router.post('/batch', protect, adminOnly, blacklistController.batchAddBlacklist);
+
+// ===== LEGACY BLACKLIST ROUTES =====
 
 // Get all blacklist entries
 router.get('/blacklist', protect, adminOnly, async (req, res) => {

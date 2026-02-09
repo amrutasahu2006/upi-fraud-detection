@@ -2,31 +2,44 @@
 const AmountDetector = require('./AmountAnomalyDetector');
 const TimeDetector = require('./EnhancedTimeDetector');
 const RecipientProfiler = require('./RecipientProfiler');
+const User = require('../models/User');
 
 exports.assessTransactionRisk = async (userId, amount, receiverId) => {
   let riskScore = 0;
   let riskReasons = [];
 
+  const user = await User.findById(userId);
+  const settings = user?.privacySettings || { 
+      aiDetection: true, 
+      behaviorLearning: false 
+  };
+
   // 1. Check Amount Anomaly
   // (Assuming your existing service has a method like 'check')
-  const amountRisk = await AmountDetector.analyze(userId, amount); 
-  if (amountRisk.isAnomalous) {
-    riskScore += 30;
-    riskReasons.push("Unusually high amount");
+  if (settings.aiDetection && settings.behaviorLearning) {
+      const amountRisk = await AmountDetector.analyze(userId, amount); 
+      if (amountRisk.isAnomalous) {
+        riskScore += 30;
+        riskReasons.push("Unusually high amount");
+      }
   }
 
-  // 2. Check Time Anomaly
-  const timeRisk = await TimeDetector.analyze(userId, new Date());
-  if (timeRisk.isSuspicious) {
-    riskScore += 20;
-    riskReasons.push("Unusual time for transaction");
+  // 2. Check Time Anomaly (Only if Learning AND AI are enabled)
+  if (settings.aiDetection && settings.behaviorLearning) {
+      const timeRisk = await TimeDetector.analyze(userId, new Date());
+      if (timeRisk.isSuspicious) {
+        riskScore += 20;
+        riskReasons.push("Unusual time for transaction");
+      }
   }
 
   // 3. Check Recipient (New or Flagged)
   const recipientRisk = await RecipientProfiler.analyze(userId, receiverId);
-  if (recipientRisk.isNewReceiver) {
-    riskScore += 25;
-    riskReasons.push("New Receiver");
+  if (settings.aiDetection && settings.behaviorLearning) {
+      if (recipientRisk.isNewReceiver) {
+        riskScore += 25;
+        riskReasons.push("New Receiver");
+      }
   }
   if (recipientRisk.isFlagged) {
     riskScore += 50; // Critical

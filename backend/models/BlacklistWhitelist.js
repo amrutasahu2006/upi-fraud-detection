@@ -53,7 +53,9 @@ const blacklistWhitelistSchema = new mongoose.Schema({
     lastIncidentDate: Date,
     totalFraudAmount: { type: Number, default: 0 },
     affectedUsers: { type: Number, default: 0 },
-    notes: String
+    notes: String,
+    global: { type: Boolean, default: false }, // For global trusted VPAs (banks, merchants)
+    identifier: String // Store normalized identifier for quick lookup
   },
   createdAt: {
     type: Date,
@@ -104,6 +106,40 @@ blacklistWhitelistSchema.statics.getActiveList = function(type) {
       { expiresAt: { $gt: new Date() } }
     ]
   }).sort({ createdAt: -1 });
+};
+
+// New method: Check if VPA is whitelisted (global trusted VPAs)
+blacklistWhitelistSchema.statics.isWhitelisted = async function(identifier) {
+  const normalizedIdentifier = identifier.toLowerCase().trim();
+  
+  const whitelisted = await this.findOne({
+    type: 'whitelist',
+    $or: [
+      { vpa: normalizedIdentifier },
+      { phoneNumber: normalizedIdentifier },
+      { accountNumber: normalizedIdentifier }
+    ],
+    isActive: true,
+    $or: [
+      { expiresAt: null },
+      { expiresAt: { $gt: new Date() } }
+    ]
+  });
+
+  return !!whitelisted;
+};
+
+// New method: Get global trusted VPAs (banks, large merchants)
+blacklistWhitelistSchema.statics.getGlobalWhitelist = function() {
+  return this.find({
+    type: 'whitelist',
+    isActive: true,
+    'metadata.global': true, // Only global whitelisted entries
+    $or: [
+      { expiresAt: null },
+      { expiresAt: { $gt: new Date() } }
+    ]
+  }).select('vpa phoneNumber accountNumber reason');
 };
 
 module.exports = mongoose.model('BlacklistWhitelist', blacklistWhitelistSchema);

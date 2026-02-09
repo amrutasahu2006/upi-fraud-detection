@@ -57,6 +57,12 @@ class RiskScoringEngine {
     } = transactionData;
 
     console.log('🔍 Starting Risk Scoring for:', { amount, recipientVPA, userId });
+    const user = await User.findById(userId);
+    const settings = user?.privacySettings || { 
+      anonymousSharing: true, 
+      aiDetection: true, 
+      behaviorLearning: false 
+    };
 
     // ===== CRITICAL: Blacklist/Whitelist Override =====
     if (this._isWhitelisted(recipientVPA, whitelist)) {
@@ -83,8 +89,31 @@ class RiskScoringEngine {
       };
     }
 
+    // ===== PRIVACY CHECK 1: AI DETECTION =====
+    // If user turned OFF AI, stop here.
+    if (!settings.aiDetection) {
+      console.log('🙈 AI Detection DISABLED by user. Skipping analysis.');
+      return {
+        totalScore: 0,
+        riskLevel: 'LOW',
+        decision: 'APPROVE',
+        riskFactors: { aiDisabled: true },
+        detailedReasons: ['🔒 AI Analysis disabled by user settings (Basic security only)'],
+        breakdown: { aiDetection: 'DISABLED' },
+        analysis: {}
+      };
+    }
+
+    // ===== PRIVACY CHECK 2: BEHAVIOR LEARNING =====
+    // If Learning is OFF, ignore personal history.
+    let effectiveHistory = userHistory;
+    if (!settings.behaviorLearning) {
+        console.log('🧠 Behavior Learning DISABLED. Ignoring personal transaction history.');
+        effectiveHistory = null; 
+    }
+
     // ===== Factor 1: Amount Anomaly Analysis =====
-    const amountRisk = await this._analyzeAmountRisk(amount, userHistory);
+    const amountRisk = await this._analyzeAmountRisk(amount, effectiveHistory);
     if (amountRisk.score > 0) {
       const weightedScore = (amountRisk.score / 100) * this.weights.AMOUNT_ANOMALY;
       riskFactors.amountAnomaly = weightedScore;
@@ -94,7 +123,7 @@ class RiskScoringEngine {
     }
 
     // ===== Factor 2: Time Pattern Analysis =====
-    const timeRisk = await this._analyzeTimeRisk(timestamp, userHistory, userId);
+    const timeRisk = await this._analyzeTimeRisk(timestamp, effectiveHistory, userId, user);
     if (timeRisk.score > 0) {
       const weightedScore = (timeRisk.score / 100) * this.weights.TIME_PATTERN;
       riskFactors.timePattern = weightedScore;
@@ -104,7 +133,7 @@ class RiskScoringEngine {
     }
 
     // ===== Factor 3: New Payee Analysis =====
-    const payeeRisk = await this._analyzePayeeRisk(recipientVPA, userId, userHistory);
+    const payeeRisk = await this._analyzePayeeRisk(recipientVPA, userId, effectiveHistory);
     if (payeeRisk.score > 0) {
       const weightedScore = (payeeRisk.score / 100) * this.weights.NEW_PAYEE;
       riskFactors.newPayee = weightedScore;
@@ -114,7 +143,7 @@ class RiskScoringEngine {
     }
 
     // ===== Factor 4: Device Fingerprint Analysis =====
-    const deviceRisk = await this._analyzeDeviceRisk(deviceId, userId, userHistory);
+    const deviceRisk = await this._analyzeDeviceRisk(deviceId, userId, effectiveHistory);
     if (deviceRisk.score > 0) {
       const weightedScore = (deviceRisk.score / 100) * this.weights.DEVICE_FINGERPRINT;
       riskFactors.deviceFingerprint = weightedScore;
@@ -124,7 +153,7 @@ class RiskScoringEngine {
     }
 
     // ===== Factor 5: Location Anomaly Analysis =====
-    const locationRisk = this._analyzeLocationRisk(location, userHistory);
+    const locationRisk = this._analyzeLocationRisk(location, effectiveHistory);
     if (locationRisk.score > 0) {
       const weightedScore = (locationRisk.score / 100) * this.weights.LOCATION_ANOMALY;
       riskFactors.locationAnomaly = weightedScore;
@@ -153,9 +182,9 @@ class RiskScoringEngine {
     console.log(`📊 FINAL RISK SCORE: ${totalScore}/100 (${riskLevel}) → ${decision}`);
 
     // Get detailed timing analysis for response
-    const user = await User.findById(userId);
+    // const user = await User.findById(userId);
     let timingAnalysis = null;
-    if (user) {
+    if (user && settings.behaviorLearning) {
       const transactionTime = new Date(timestamp);
       timingAnalysis = user.isUnusualTransactionTime(transactionTime);
       timingAnalysis.currentHour = transactionTime.getHours();
@@ -220,7 +249,7 @@ class RiskScoringEngine {
           isNewDevice: deviceRisk.score > 0,
           riskScore: deviceRisk.score
         },
-        locationAnalysis: await this._getDetailedLocationAnalysis(location, userHistory, userId)
+        locationAnalysis: await this._getDetailedLocationAnalysis(location, effectiveHistory, userId)
       }
     };
   }

@@ -270,10 +270,60 @@ const changePassword = async (req, res) => {
   }
 };
 
+// @desc    Get user privacy settings
+// @route   GET /api/auth/privacy-settings
+// @access  Private
+const getPrivacySettings = async (req, res) => {
+  try {
+    // Assuming req.user.id comes from your auth middleware
+    const user = await User.findById(req.user.id).select('privacySettings');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    
+    // Default fallback if settings are missing
+    const settings = user.privacySettings || {
+       anonymousSharing: true,
+       aiDetection: true,
+       behaviorLearning: false
+    };
+
+    res.json(settings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
+// @desc    Update user privacy settings
+// @route   PUT /api/auth/privacy-settings
+// @access  Private
+const updatePrivacySettings = async (req, res) => {
+  const { anonymousSharing, aiDetection, behaviorLearning } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    // Update fields
+    user.privacySettings = {
+      anonymousSharing,
+      aiDetection,
+      behaviorLearning
+    };
+
+    await user.save();
+    res.json(user.privacySettings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getMe,
   updateProfile,
   changePassword,
+  getPrivacySettings,
+  updatePrivacySettings
 };
