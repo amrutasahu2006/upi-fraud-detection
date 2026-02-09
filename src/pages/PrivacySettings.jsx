@@ -1,12 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SettingToggle from "../components/SettingToggle";
+import axios from "axios";
 
 export default function PrivacySettings() {
-  const [anonymousSharing, setAnonymousSharing] = useState(true);
-  const [aiDetection, setAiDetection] = useState(true);
-  const [behaviorLearning, setBehaviorLearning] = useState(false);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  
+  const [settings, setSettings] = useState({
+    anonymousSharing: true,
+    aiDetection: true,
+    behaviorLearning: false
+  });
+
+  // 1. Fetch settings from Database on load
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const token = localStorage.getItem('token'); 
+        
+        if (!token) {
+           console.warn("No token found. User might not be logged in.");
+           setLoading(false);
+           return;
+        }
+
+        const res = await axios.get('http://localhost:5000/api/auth/privacy-settings', {
+          headers: { 
+            // --- FIXED: Updated to match your backend 'authenticate' middleware ---
+            'Authorization': `Bearer ${token}` 
+          }
+        });
+        
+        if(res.data) {
+           setSettings(res.data);
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching settings:", err);
+        if (err.response && err.response.status === 401) {
+            alert("Session expired. Please log in again.");
+            navigate('/login'); // Optional: redirect to login
+        }
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, [navigate]);
+
+  // 2. Handle Toggle & Save to Database
+  const handleToggle = async (key) => {
+    const newSettings = { ...settings, [key]: !settings[key] };
+    setSettings(newSettings);
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put('http://localhost:5000/api/auth/privacy-settings', newSettings, {
+        headers: { 
+          // --- FIXED: Updated to match your backend ---
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+    } catch (err) {
+      console.error("Error saving settings:", err);
+      setSettings({ ...settings, [key]: settings[key] }); // Revert on error
+      alert("Failed to save setting.");
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading settings...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
@@ -26,22 +90,22 @@ export default function PrivacySettings() {
           <SettingToggle
             title="Anonymous fraud pattern sharing"
             description="Help improve our fraud detection system by anonymously sharing transaction patterns. Your personal data remains private."
-            enabled={anonymousSharing}
-            onChange={() => setAnonymousSharing(!anonymousSharing)}
+            enabled={settings.anonymousSharing}
+            onChange={() => handleToggle('anonymousSharing')}
           />
 
           <SettingToggle
             title="AI-based anomaly detection"
             description="Enable real-time AI analysis of your transactions to identify and alert you about unusual or potentially fraudulent activities."
-            enabled={aiDetection}
-            onChange={() => setAiDetection(!aiDetection)}
+            enabled={settings.aiDetection}
+            onChange={() => handleToggle('aiDetection')}
           />
 
           <SettingToggle
             title="Personalized behavior learning"
             description="Allow AI to learn from your unique spending habits to provide more accurate and tailored security insights."
-            enabled={behaviorLearning}
-            onChange={() => setBehaviorLearning(!behaviorLearning)}
+            enabled={settings.behaviorLearning}
+            onChange={() => handleToggle('behaviorLearning')}
           />
 
           <div className="pt-6 md:pt-8 lg:pt-10">
@@ -58,6 +122,31 @@ export default function PrivacySettings() {
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+// Subcomponent
+function SettingToggle({ title, description, enabled, onChange }) {
+  return (
+    <div className="w-full flex items-start justify-between gap-4 py-8">
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+          {description}
+        </p>
+      </div>
+
+      <button
+        onClick={onChange}
+        className={`shrink-0 relative inline-flex h-6 w-16 items-center rounded-full transition cursor-pointer
+        ${enabled ? "bg-blue-500" : "bg-gray-300"}`}
+      >
+        <span
+          className={`absolute left-1 h-5 w-5 rounded-full bg-white transition transform
+          ${enabled ? "translate-x-9" : "translate-x-0"}`}
+        />
+      </button>
     </div>
   );
 }

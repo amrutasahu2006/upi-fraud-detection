@@ -133,6 +133,20 @@ const userSchema = new mongoose.Schema({
   // Taniya
   phoneNumber: { type: String },
   fcmToken: { type: String },
+  privacySettings: {
+    anonymousSharing: {
+      type: Boolean,
+      default: true
+    },
+    aiDetection: {
+      type: Boolean,
+      default: true
+    },
+    behaviorLearning: {
+      type: Boolean,
+      default: false
+    }
+  }
   //Taniya
 }, {
   timestamps: true
