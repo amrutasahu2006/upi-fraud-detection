@@ -68,6 +68,33 @@ class NotificationService {
      if (phone) await this.sendSMS(phone, `FRAUD ALERT: ₹${transactionDetails.amount} transaction detected!`);
      // ...
   }
+
+  // Inside your NotificationService class in backend/services/NotificationService.js
+
+async sendCircleThreatAlert(fcmToken, reporterName, payeeName) {
+  if (!fcmToken) return;
+
+  const message = {
+    notification: {
+      title: '🛡️ Circle Safety Warning',
+      body: `${reporterName} reported a suspicious payee: ${payeeName}`,
+    },
+    // This 'data' object is what triggers the custom logic in your App.jsx
+    data: {
+      type: 'CIRCLE_THREAT',
+      payeeName: payeeName,
+      reporterName: reporterName
+    },
+    token: fcmToken,
+  };
+
+  try {
+    const response = await this.messaging.send(message);
+    console.log('✅ Circle Threat Push Sent:', response);
+  } catch (error) {
+    console.error('❌ Failed to send Circle Push:', error);
+  }
+}
 }
 
 module.exports = new NotificationService();

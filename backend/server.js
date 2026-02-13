@@ -14,6 +14,7 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const analysisRoutes = require('./routes/analysisRoutes');
 const alertRoutes = require('./routes/alertRoutes');
 const blacklistRoutes = require('./routes/blacklistRoutes');
+const circleRoutes = require('./routes/circleRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 // Import Redis connection
@@ -46,6 +47,8 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/lists', blacklistRoutes);
+app.use('/api/circle', circleRoutes);
+
 
 // New blacklist API routes (NPCI-like)
 app.use('/api/blacklist', blacklistRoutes);
@@ -90,6 +93,7 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
 
 startServer();
 

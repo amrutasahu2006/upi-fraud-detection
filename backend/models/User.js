@@ -131,6 +131,18 @@ const userSchema = new mongoose.Schema({
     }
   }],
   // Taniya
+  trustedCircle: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }],
+
+  circleFraudReports: [{
+    payeeUpiId: { type: String },
+    reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    payeeName: String,
+    timestamp: { type: Date, default: Date.now }
+  }],
+
   phoneNumber: { type: String },
   fcmToken: { type: String },
   privacySettings: {
@@ -509,6 +521,16 @@ userSchema.methods.calculateComprehensiveRisk = async function(transactionData) 
   if (timeAnalysis.isUnusual) {
     totalRiskScore += this.calculateTimeRisk(new Date(transactionData.timestamp || new Date()), transactionData.amount);
     riskFactors.push('unusualTime');
+  }
+
+  // Check Circle Reports
+  const circleAlert = this.circleFraudReports.find(
+    report => report.payeeUpiId === transactionData.payeeUpiId
+  );
+
+  if (circleAlert) {
+    totalRiskScore += 60; // Huge risk boost because a friend reported it
+    riskFactors.push('circleReportedFraud');
   }
 
   // Amount-based risk (new)

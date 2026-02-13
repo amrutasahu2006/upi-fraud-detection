@@ -15,6 +15,7 @@ import Safety from "./pages/Safety";
 import PrivacySettings from "./pages/PrivacySettings";
 import FraudAnalytics from "./pages/FraudAnalytics";
 import TransactionHistory from "./pages/TransactionHistory";
+import SafetyCircle from "./pages/SafetyCircle";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -61,10 +62,17 @@ function App() {
     setupNotifications();
 
     // B. Listen for messages when the app is open (Foreground)
+    // Inside your useEffect in App.jsx
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground Message received:', payload);
-      // You can replace this with a nice UI Toast/Popup
-      alert(`🚨 ${payload.notification.title}: ${payload.notification.body}`);
+      
+      // Custom logic for Circle Alerts
+      if (payload.data?.type === 'CIRCLE_THREAT') {
+        alert(`🛡️ CIRCLE SAFETY ALERT: A member of your trusted circle reported ${payload.data.payeeName}. Be careful!`);
+      } else {
+        // Your existing generic alert
+        alert(`🚨 ${payload.notification.title}: ${payload.notification.body}`);
+      }
     });
 
     return () => unsubscribe(); // Cleanup
@@ -152,6 +160,15 @@ function App() {
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/blocked" element={<TransactionBlocked />} />
             <Route path="/risk-details" element={<TransactionRiskDetails />} />
+            {/* Add this inside the <Routes> block */}
+            <Route
+              path="/safety-circle"
+              element={
+                <ProtectedRoute>
+                  <SafetyCircle />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </BrowserRouter>
       </TransactionProvider>

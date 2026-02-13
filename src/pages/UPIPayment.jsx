@@ -55,6 +55,7 @@ function UPIPaymentClean() {
   };
 
   // Handle payment submission with risk analysis
+  // Handle payment submission with risk analysis
   const handlePayment = async () => {
     if (!upiId || !selectedAmount) {
       alert("Please enter UPI ID and amount");
@@ -65,125 +66,129 @@ function UPIPaymentClean() {
     setIsAnalyzing(true);
     
     try {
-      // Step 0: Check VPA blacklist BEFORE risk analysis
+      // Step 0: Check VPA blacklist
       console.log('🔍 Checking VPA blacklist for:', upiId);
       const blacklistResponse = await fetch(`http://localhost:5000/api/blacklist/check?vpa=${encodeURIComponent(upiId)}`);
       const blacklistData = await blacklistResponse.json();
       
-      console.log('📋 Blacklist check result:', blacklistData);
-
-      // Block transaction if VPA is blacklisted
       if (blacklistData.flagged) {
         setIsAnalyzing(false);
         setIsProcessing(false);
-        alert(`⚠️ TRANSACTION BLOCKED\n\nThis recipient has been flagged for ${blacklistData.reason}.\n\nRisk Level: ${blacklistData.risk_level.toUpperCase()}\nConfidence: ${blacklistData.confidence_score}%\n\nPlease verify recipient details or contact support.`);
+        
+        // SAVE AS BLOCKED immediately
+        startTransaction({
+            amount: selectedAmount,
+            payeeUpiId: upiId,
+            recipient: { name: upiId.split('@')[0], upi: upiId, isNewPayee: true },
+            timestamp: new Date().toISOString(),
+            status: 'blocked', // <--- IMPORTANT
+            isBlocked: true,
+            riskScore: 100
+        });
+
+        alert(`⚠️ TRANSACTION BLOCKED\n\nRecipient flagged: ${blacklistData.reason}`);
         return;
       }
 
-      // If whitelisted, show trust indicator
-      if (blacklistData.whitelisted) {
-        console.log('✅ Recipient is whitelisted (trusted merchant)');
-      }
-
-      // Continue with existing risk analysis
-      // Get user's location for risk analysis
+      // Prepare Data
       const userLocation = await getCurrentLocation();
-      if (userLocation) {
-        setUserLocation(userLocation);
-        console.log('📍 User location captured:', userLocation);
-      } else {
-        console.warn('⚠️ Could not get user location - location analysis will be limited');
-      }
+      if (userLocation) setUserLocation(userLocation);
 
-      // Detect if payee is new (not in quick contacts)
       const isNewPayee = !quickContacts.some(c => c.upi === upiId);
-
-      // Detect if amount is high
       const isHighAmount = selectedAmount > 10000;
-
-      // Detect if time is unusual (before 6 AM or after 10 PM)
       const currentHour = new Date().getHours();
       const isUnusualTime = currentHour < 6 || currentHour > 22;
 
-      // Create transaction data with proper risk factor detection
       const transactionData = {
         amount: selectedAmount,
-        payeeUpiId: upiId, // Add for backend VPA validation
+        payeeUpiId: upiId,
         recipient: {
           name: upiId.split('@')[0],
           upi: upiId,
           isNewPayee: isNewPayee
         },
-        location: userLocation, // Include location in transaction data
+        location: userLocation,
         note,
         timestamp: new Date().toISOString(),
-        // Explicitly pass risk factors - IMPORTANT!
-        isNewPayee: isNewPayee,
-        isHighAmount: isHighAmount,
+        isNewPayee,
+        isHighAmount,
         isNewDevice: false,
-        isUnusualTime: isUnusualTime,
+        isUnusualTime,
         isNewLocation: false
       };
 
-      // Store transaction in context
-      startTransaction(transactionData);
-      // Call backend API (mocked for now)
+      // ❌ DELETED: startTransaction(transactionData); 
+      // We removed the line above so we don't save it too early!
+
       console.log("📤 Sending transaction for analysis:", transactionData);
       const result = await analyzeTransaction(transactionData);
-      console.log("📥 Received risk analysis:", result);
-      console.log("📥 Result structure check - success:", result?.success, "data:", result?.data);
 
       setIsAnalyzing(false);
       setIsProcessing(false);
 
       if (result.success) {
-        // Store analysis result in context
         setAnalysisResult(result.data);
-        console.log("✅ Risk analysis data:", {
-          amount: result.data.amount || selectedAmount,
-          riskScore: result.data.riskScore,
-          riskLevel: result.data.riskLevel,
-          decision: result.data.decision,
-          riskFactors: result.data.riskFactors
-        });
-        console.log("📋 Detailed reasons:", result.data.detailedReasons);
-
-        // Small delay to ensure context updates before navigation
+        
         setTimeout(() => {
           const decision = result.data.decision;
           const riskScore = result.data.riskScore || 0;
-          const amount = result.data.amount || selectedAmount;
-          console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore, 'Amount:', amount);
+          console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore);
 
-          // TEST MODE: For demo purposes, allow small amounts (≤1000) to go through
-          if (amount <= 1000) {
-            console.log('✅ Small amount bypass - navigating to success page');
-            navigate('/payment-success');
+          // 1. BLOCK Logic
+          if (decision === 'BLOCK' || riskScore >= 80) {
+            console.log('🛑 Critical Risk - Blocking Transaction');
+            
+            // ✅ SAVE AS BLOCKED HERE
+            startTransaction({
+                ...transactionData,
+                status: 'blocked', // This makes it red in history
+                riskScore: riskScore,
+                isBlocked: true
+            });
+
+            navigate('/blocked', { 
+                state: { 
+                    reason: result.data.detailedReasons?.[0] || "High Risk Detected",
+                    riskScore: riskScore
+                } 
+            });
             return;
           }
 
-          // For any warning or threat (riskScore >= 30) or non-APPROVE decision, show warning page
+          // 2. WARNING Logic
           if ((decision && decision !== 'APPROVE') || riskScore >= 30) {
             console.log('➡️ Navigating to /security-warning');
+            
+            // Optional: Save as pending or warning
+            startTransaction({
+                ...transactionData,
+                status: 'pending',
+                riskScore: riskScore,
+                isBlocked: false
+            });
+
             navigate('/security-warning');
             return;
           }
 
-          // APPROVE: proceed with success
-          console.log('✅ Payment approved, navigating to success page');
+          // 3. SUCCESS Logic
+          console.log('✅ Payment approved');
+          
+          // ✅ SAVE AS COMPLETED HERE
+          startTransaction({
+            ...transactionData,
+            status: 'completed', // This makes it green in history
+            riskScore: riskScore,
+            isBlocked: false
+          });
+
           navigate('/payment-success');
         }, 100);
       } else {
-        // Handle unsuccessful response
-        console.error('❌ Analysis failed:', result);
-        setIsAnalyzing(false);
-        setIsProcessing(false);
-        alert(result.message || 'Risk analysis failed. Please try again.');
+        alert(result.message || 'Risk analysis failed.');
       }
     } catch (error) {
-      console.error("❌ CATCH BLOCK - Risk analysis failed:", error);
-      console.error("❌ Error message:", error.message);
-      console.error("❌ Error stack:", error.stack);
+      console.error("Error:", error);
       setIsProcessing(false);
       setIsAnalyzing(false);
       alert("Something went wrong: " + error.message);

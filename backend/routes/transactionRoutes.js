@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 const { validateVPABeforePayment } = require('../middleware/vpaValidator');
+const transactionController = require('../controllers/transactionController');
 
 // Helper function to generate recommendations based on risk analysis
 function generateRecommendations(riskAnalysis) {
@@ -36,6 +37,8 @@ function generateRecommendations(riskAnalysis) {
 // @route   POST /api/transactions
 // @desc    Create new transaction
 // @access  Private
+router.post('/analyze', transactionController.analyzeTransaction);
+
 router.post('/', protect, validateVPABeforePayment, async (req, res) => {
   try {
     const {
