@@ -45,6 +45,8 @@ const registerUser = async (req, res) => {
       phoneNumber,
       password,
       role, // Default role is 'user', admin can be assigned by other means
+      trustedCircle: [],       // ✅ Explicitly initialize
+      circleFraudReports: []
     });
 
     // Generate token

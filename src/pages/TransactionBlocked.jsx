@@ -1,130 +1,163 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useTransaction } from "../context/TransactionContext";
-import { ShieldX, AlertTriangle, CheckCircle } from "lucide-react";
+import { ShieldAlert, AlertTriangle, CheckCircle, XCircle, Home } from "lucide-react";
 import { submitNotFraudFeedback } from "../services/mockApi";
 
 function TransactionBlocked() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { transaction, analysisResult } = useTransaction();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Get transaction data from context or use defaults
-  const amount = transaction?.amount || analysisResult?.amount || 25000;
-  const recipientVPA = transaction?.recipient?.upi || analysisResult?.recipientVPA || 'unknown@bank';
-  const riskScore = analysisResult?.riskScore || 92;
-  const decision = analysisResult?.decision || 'BLOCK';
-  const reasons = analysisResult?.detailedReasons || [];
+  // 1. Get data from Navigation State (Priority) OR Context (Fallback)
+  const stateData = location.state || {};
+  
+  const amount = transaction?.amount || 0;
+  const recipientVPA = transaction?.payeeUpiId || transaction?.recipient?.upi || 'Unknown Recipient';
+  
+  // Data passed from UPIPaymentClean.jsx
+  const riskScore = stateData.riskScore || 99;
+  const reason = stateData.reason || "High Security Risk Detected";
+  
+  // Ensure reasons is always an array for mapping
+  const reasonsList = Array.isArray(stateData.reasons) ? stateData.reasons : [reason];
 
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center">
-      <div className="w-full max-w-screen-lg bg-white flex flex-col">
+    <div className="min-h-screen bg-red-50 flex justify-center p-4">
+      <div className="w-full max-w-md bg-white flex flex-col rounded-3xl shadow-xl overflow-hidden border border-red-100 my-auto">
 
-        {/* Page Header */}
-        <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
-          <button onClick={() => navigate('/security-warning')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Transaction Blocked</h1>
-        </header>
+        {/* Header */}
+        <div className="bg-red-600 p-6 text-center">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+                <ShieldAlert className="text-white w-10 h-10" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Transaction Blocked</h1>
+            <p className="text-red-100 mt-1 text-sm">Security protocols engaged</p>
+        </div>
 
         {/* Main Content */}
-        <main className="p-4 md:p-6 lg:p-8 flex flex-col items-center text-center">
+        <main className="p-6 md:p-8 flex flex-col items-center">
 
-          {/* status (centered) */}
-          <div className="flex flex-col items-center gap-4 mb-8">
-            <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-gray-100 flex items-center justify-center">
-              {/* check icon */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 md:h-14 md:w-14 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
-                <circle cx="12" cy="12" r="9" strokeWidth={2} stroke="currentColor" className="text-green-600" />
-              </svg>
-            </div>
-
-            <h3 className="text-xl md:text-2xl font-semibold text-gray-800">Transaction blocked successfully!</h3>
-
-            <p className="text-sm md:text-base text-gray-500 text-center md:max-w-md">We've successfully blocked the suspicious transaction and recorded your report. Your funds are secure.</p>
+          {/* Risk Score Indicator */}
+          <div className="text-center mb-8">
+             <div className="text-5xl font-bold text-slate-800 mb-2">
+                {riskScore}<span className="text-2xl text-slate-400">/100</span>
+             </div>
+             <div className="inline-block bg-red-100 text-red-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+               Critical Risk Level
+             </div>
           </div>
 
-          {/* summary and action (stacked, centered) */}
-          <div className="w-full max-w-xl mx-auto">
-            <div className="bg-white border rounded-lg shadow-sm overflow-hidden mb-8">
-              <div className="px-4 py-3 border-b">
-                <h4 className="font-semibold text-gray-800">Transaction Summary</h4>
-              </div>
+          {/* Details Card */}
+<div className="w-full bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden mb-6">
+  {/* Transaction Details */}
+  <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+    <span className="text-sm text-slate-500">Amount</span>
+    <span className="text-lg font-bold text-slate-900">
+      ₹{amount.toLocaleString('en-IN')}
+    </span>
+  </div>
 
-              <div className="divide-y divide-gray-100">
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="text-sm text-gray-500">Receiver VPA</div>
-                  <div className="text-sm font-medium text-gray-700">{recipientVPA}</div>
-                </div>
+  <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+    <span className="text-sm text-slate-500">To</span>
+    <span className="text-sm font-medium text-slate-900">{recipientVPA}</span>
+  </div>
 
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="text-sm text-gray-500">Amount</div>
-                  <div className="text-sm font-semibold text-gray-700">₹ {amount.toLocaleString('en-IN')}</div>
-                </div>
+  {/* Blocking Reasons */}
+  <div className="p-4 bg-red-50/50">
+    <div className="flex items-start gap-3">
+      <AlertTriangle className="text-red-600 mt-0.5" size={18} />
+      <div>
+        <h3 className="font-bold text-red-900 text-sm mb-1">Blocking Reason</h3>
+        <ul className="space-y-1">
+          {reasonsList.map((r, i) => (
+            <li key={i} className="text-sm text-red-800/80">
+              {r}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
 
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="text-sm text-gray-600">Risk Score</div>
-                  <div className="text-sm font-semibold text-red-600">{riskScore}%</div>
-                </div>
-                
-                <div className="flex items-center justify-between px-4 py-3">
-                  <div className="text-sm text-gray-600">Decision</div>
-                  <div className="text-sm font-semibold text-red-600">{decision}</div>
-                </div>
-              </div>
-              
-              {/* Show reasons if available */}
-              {reasons.length > 0 && (
-                <div className="px-4 py-3 bg-red-50 border-t">
-                  <div className="text-xs font-semibold text-gray-700 mb-2">Reasons for blocking:</div>
-                  <ul className="text-xs text-gray-600 space-y-1">
-                    {reasons.slice(0, 3).map((reason, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <AlertTriangle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
-                        <span>{reason}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+{/* Transaction Summary Card */}
+<div className="w-full max-w-xl mx-auto mb-6">
+  <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+    <div className="px-4 py-3 border-b">
+      <h4 className="font-semibold text-gray-800">Transaction Summary</h4>
+    </div>
 
-            <button
-              onClick={async () => {
-                try {
-                  setIsSubmitting(true);
-                  const txId = analysisResult?.transactionId || transaction?.transactionId;
-                  if (txId) {
-                    await submitNotFraudFeedback(txId, 'User overrode block decision');
-                  }
-                  navigate('/payment-success');
-                } catch (error) {
-                  console.error('Feedback error:', error);
-                  navigate('/payment-success');
-                } finally {
-                  setIsSubmitting(false);
-                }
-              }}
-              disabled={isSubmitting}
-              className="w-full mb-4 flex items-center justify-center space-x-2 bg-green-50 border border-green-200 text-green-700 py-3 rounded-lg hover:bg-green-100 transition-colors text-sm font-semibold cursor-pointer disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <span>Processing...</span>
-              ) : (
-                <>
-                  <CheckCircle size={18} />
-                  <span>This is not fraud - Approve Anyway</span>
-                </>
-              )}
-            </button>
+    <div className="divide-y">
+      <div className="flex justify-between px-4 py-3 text-sm">
+        <span className="text-gray-500">Receiver VPA</span>
+        <span className="font-medium">{recipientVPA}</span>
+      </div>
 
+      <div className="flex justify-between px-4 py-3 text-sm">
+        <span className="text-gray-500">Amount</span>
+        <span className="font-semibold">₹{amount.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div className="flex justify-between px-4 py-3 text-sm">
+        <span className="text-gray-500">Risk Score</span>
+        <span className="font-semibold text-red-600">{riskScore}%</span>
+      </div>
+
+      <div className="flex justify-between px-4 py-3 text-sm">
+        <span className="text-gray-500">Decision</span>
+        <span className="font-semibold text-red-600">{decision}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* Approve Anyway Button */}
+<button
+  onClick={async () => {
+    try {
+      setIsSubmitting(true);
+      const txId = analysisResult?.transactionId || transaction?.transactionId;
+      if (txId) {
+        await submitNotFraudFeedback(txId, 'User overrode block decision');
+      }
+      navigate('/payment-success');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }}
+  disabled={isSubmitting}
+  className="w-full mb-4 flex items-center justify-center gap-2 bg-green-50 border border-green-200 text-green-700 py-3 rounded-lg font-semibold"
+>
+  {isSubmitting ? 'Processing...' : (
+    <>
+      <CheckCircle size={18} />
+      This is not fraud – Approve Anyway
+    </>
+  )}
+</button>
+
+
+          {/* Actions */}
+          <div className="w-full space-y-3">
             <button
               onClick={() => navigate('/payment')}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-lg shadow-md text-sm md:text-base tracking-wide cursor-pointer"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              Return to Home Page
+              <XCircle size={20} />
+              Cancel Transaction
+            </button>
+
+            <button
+              onClick={() => navigate('/')}
+              className="w-full bg-white border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <Home size={18} />
+              Return to Home
             </button>
           </div>
+
         </main>
       </div>
     </div>
@@ -132,4 +165,3 @@ function TransactionBlocked() {
 }
 
 export default TransactionBlocked;
-

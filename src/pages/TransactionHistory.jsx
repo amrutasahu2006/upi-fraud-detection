@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Clock, IndianRupee, User, ShieldCheck } from 'lucide-react';
+import { Clock, IndianRupee, User, ShieldCheck, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
+import axios from 'axios'; // Ensure axios is imported
 
 const formatINR = (n) => new Intl.NumberFormat('en-IN').format(Number(n || 0));
 
@@ -9,6 +10,7 @@ export default function TransactionHistory() {
   const { token, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, error: null, items: [], pagination: null });
+  const [reportingId, setReportingId] = useState(null); // Track which item is being reported
 
   useEffect(() => {
     if (authLoading) return;
@@ -24,10 +26,8 @@ export default function TransactionHistory() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
-        console.log('📋 Transaction History API Response:', { status: res.ok, data });
         if (!res.ok || !data.success) throw new Error(data.message || 'Failed to fetch transactions');
         const txList = data.data.transactions || [];
-        console.log('✅ Loaded', txList.length, 'transactions:', txList);
         setState({ loading: false, error: null, items: txList, pagination: data.data.pagination });
       } catch (err) {
         console.error('❌ Transaction fetch error:', err);
@@ -38,29 +38,48 @@ export default function TransactionHistory() {
     fetchTx();
   }, [authLoading, isAuthenticated, token, navigate]);
 
+  // --- New Report Function ---
+  const handleReportToCircle = async (e, tx) => {
+    e.stopPropagation(); // Prevent card click
+    const vpa = tx.recipientVPA || tx.payeeUpiId;
+    const name = tx.payee || 'Unknown Payee';
+
+    if (!window.confirm(`Report ${vpa} as suspicious to your safety circle?`)) return;
+
+    setReportingId(tx._id);
+    try {
+      await axios.post('http://localhost:5000/api/circle/report', {
+        payeeUpiId: vpa,
+        payeeName: name
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("Successfully reported. Your circle members will now be warned about this payee.");
+    } catch (err) {
+      alert("Failed to report. Please try again.");
+    } finally {
+      setReportingId(null);
+    }
+  };
+
   const { loading, error, items } = state;
 
   return (
     <div className="min-h-screen bg-gray-100 flex justify-center">
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
-        {/* Page Header */}
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <Clock className="text-blue-600" size={24} />
           <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Transaction History</h1>
         </header>
 
-        {/* Main Content */}
         <main className="p-4 md:p-6 lg:p-8">
-          {/* Page Intro */}
           <div className="mb-8 lg:mb-12">
             <p className="text-base sm:text-xl text-slate-500 max-w-2xl font-medium">
               Review your recent transactions and risk summaries.
             </p>
           </div>
 
-          {/* Grid Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-start">
-            {/* History List */}
             <div className="lg:col-span-12">
               <div className="bg-white border border-slate-200 rounded-[2.5rem] p-6 sm:p-8 lg:p-12 shadow-sm">
                 <div className="flex items-center justify-between mb-6 sm:mb-8">
@@ -71,20 +90,8 @@ export default function TransactionHistory() {
                   </div>
                 </div>
 
-                {loading && (
-                  <div className="text-center text-slate-500 py-10">Loading transactions…</div>
-                )}
-
-                {error && (
-                  <div className="bg-red-50 border border-red-100 rounded-2xl p-4 sm:p-5 text-red-700">
-                    <div className="font-semibold mb-1">Unable to load transactions</div>
-                    <div className="text-sm opacity-90">{error}</div>
-                  </div>
-                )}
-
-                {!loading && !error && items.length === 0 && (
-                  <div className="text-center text-slate-500 py-10">No transactions found.</div>
-                )}
+                {loading && <div className="text-center text-slate-500 py-10">Loading transactions…</div>}
+                {error && <div className="text-red-700 p-5">{error}</div>}
 
                 {!loading && !error && items.length > 0 && (
                   <div className="space-y-3 sm:space-y-4">
@@ -92,44 +99,21 @@ export default function TransactionHistory() {
                       const vpa = tx.recipientVPA || tx.payeeUpiId || 'unknown@bank';
                       const timeStr = new Date(tx.createdAt || tx.timestamp).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
                       const risk = typeof tx.riskScore === 'number' ? Math.round(tx.riskScore) : null;
-                      const riskBadge = risk === null
-                        ? null
-                        : risk >= 80
-                          ? 'bg-red-100 text-red-700'
-                          : risk >= 60
-                            ? 'bg-orange-100 text-orange-700'
-                            : risk >= 30
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-green-100 text-green-700';
-
-                      // Status badge styling - based on decision if completed, otherwise based on status
-                      let statusBadge, statusLabel;
                       
+                      // Status Badge Logic
+                      let statusBadge = 'bg-slate-100 text-slate-700', statusLabel = 'Processing';
                       if (tx.status === 'completed') {
-                        // If completed but was warned/delayed, show "Warned"
-                        if (tx.decision === 'DELAY' || tx.decision === 'WARN') {
-                          statusBadge = 'bg-yellow-100 text-yellow-700';
-                          statusLabel = 'Warned';
-                        } else {
-                          // Originally approved or auto-approved
-                          statusBadge = 'bg-green-100 text-green-700';
-                          statusLabel = 'Approved';
-                        }
-                      } else if (tx.status === 'pending') {
-                        statusBadge = 'bg-yellow-100 text-yellow-700';
-                        statusLabel = 'Warned';
+                        statusBadge = (tx.decision === 'DELAY' || tx.decision === 'WARN') ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
+                        statusLabel = (tx.decision === 'DELAY' || tx.decision === 'WARN') ? 'Warned' : 'Approved';
                       } else if (tx.status === 'blocked') {
                         statusBadge = 'bg-red-100 text-red-700';
                         statusLabel = 'Blocked';
-                      } else {
-                        statusBadge = 'bg-slate-100 text-slate-700';
-                        statusLabel = 'Processing';
                       }
 
                       return (
                         <div
                           key={tx._id || tx.transactionId}
-                          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50 rounded-2xl transition-all border border-slate-200 cursor-pointer"
+                          className="w-full flex items-center justify-between p-4 sm:p-5 hover:bg-slate-50 rounded-2xl transition-all border border-slate-200 cursor-pointer group"
                         >
                           <div className="flex items-center space-x-4">
                             <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center">
@@ -144,15 +128,28 @@ export default function TransactionHistory() {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right flex flex-col items-end gap-2">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge}`}>
-                              {statusLabel}
-                            </span>
-                            {risk !== null && (
-                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${riskBadge}`}>
-                                Risk {risk}%
+
+                          <div className="flex items-center gap-4">
+                            {/* --- New Report Button --- */}
+                            <button
+                              onClick={(e) => handleReportToCircle(e, tx)}
+                              disabled={reportingId === tx._id}
+                              className="hidden group-hover:flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                            >
+                              <AlertTriangle size={14} />
+                              {reportingId === tx._id ? "Reporting..." : "Report"}
+                            </button>
+
+                            <div className="text-right flex flex-col items-end gap-2">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${statusBadge}`}>
+                                {statusLabel}
                               </span>
-                            )}
+                              {risk !== null && (
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100`}>
+                                  Risk {risk}%
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

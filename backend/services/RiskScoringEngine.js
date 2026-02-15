@@ -1,4 +1,3 @@
-// backend/services/RiskScoringEngine.js
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 
@@ -16,6 +15,7 @@ class RiskScoringEngine {
       DEVICE_FINGERPRINT: 15,
       LOCATION_ANOMALY: 10,
       VELOCITY_CHECK: 10,
+      CIRCLE_REPORT: 80,
       BLACKLIST_HIT: 100, // Override score
       WHITELIST_HIT: -100 // Override score (makes score 0)
     };
@@ -71,6 +71,8 @@ class RiskScoringEngine {
     } = transactionData;
 
     console.log('🔍 Starting Risk Scoring for:', { amount, recipientVPA, userId });
+    
+    // OPTIMIZATION: Fetch User ONCE here
     const user = await User.findById(userId);
     const settings = user?.privacySettings || { 
       anonymousSharing: true, 
@@ -81,6 +83,18 @@ class RiskScoringEngine {
     // Get adaptive weights for this user
     const weights = this._getAdaptiveWeights(user);
     console.log('⚖️ Using weights:', weights);
+
+    const circleMatch = user?.circleFraudReports?.find(
+      report => report.payeeUpiId === recipientVPA
+    );
+
+    if (circleMatch) {
+      console.log(`🛡️ CIRCLE ALERT: ${recipientVPA} reported by a trusted member!`);
+      const weightedScore = this.weights.CIRCLE_REPORT;
+      riskFactors.circleAlert = weightedScore;
+      totalScore += weightedScore;
+      detailedReasons.push(`🛡️ Warning: A member of your safety circle previously reported this payee.`);
+    }
 
     // ===== CRITICAL: Blacklist/Whitelist Override =====
     if (this._isWhitelisted(recipientVPA, whitelist)) {
@@ -141,6 +155,7 @@ class RiskScoringEngine {
     }
 
     // ===== Factor 2: Time Pattern Analysis =====
+    // Pass 'user' object here to avoid re-fetching
     const timeRisk = await this._analyzeTimeRisk(timestamp, effectiveHistory, userId, user);
     if (timeRisk.score > 0) {
       const weightedScore = (timeRisk.score / 100) * weights.TIME_PATTERN;
@@ -200,7 +215,6 @@ class RiskScoringEngine {
     console.log(`📊 FINAL RISK SCORE: ${totalScore}/100 (${riskLevel}) → ${decision}`);
 
     // Get detailed timing analysis for response
-    // const user = await User.findById(userId);
     let timingAnalysis = null;
     if (user && settings.behaviorLearning) {
       const transactionTime = new Date(timestamp);
@@ -229,7 +243,8 @@ class RiskScoringEngine {
         newPayee: riskFactors.newPayee || 0,
         deviceFingerprint: riskFactors.deviceFingerprint || 0,
         locationAnomaly: riskFactors.locationAnomaly || 0,
-        velocityCheck: riskFactors.velocityCheck || 0
+        velocityCheck: riskFactors.velocityCheck || 0,
+        circleAlert: riskFactors.circleAlert || 0 
       },
       analysis: {
         timeAnalysis: timingAnalysis || {
@@ -299,15 +314,14 @@ class RiskScoringEngine {
     return { score, reason };
   }
 
-  async _analyzeTimeRisk(timestamp, userHistory, userId) {
+  // UPDATED: Now accepts 'user' object to prevent re-fetching
+  async _analyzeTimeRisk(timestamp, userHistory, userId, user) {
     try {
       const transactionTime = new Date(timestamp);
       const currentHour = transactionTime.getHours();
 
-      // Get user from database to access timing analysis methods
-      const user = await User.findById(userId);
+      // IF USER WAS PASSED, USE IT. IF NOT, FALLBACK.
       if (!user) {
-        // Fallback to basic night-time detection if user not found
         return this._fallbackTimeRisk(currentHour, timestamp);
       }
 
