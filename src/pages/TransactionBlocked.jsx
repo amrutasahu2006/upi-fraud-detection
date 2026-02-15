@@ -1,10 +1,13 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useTransaction } from "../context/TransactionContext";
-import { ShieldX, AlertTriangle } from "lucide-react";
+import { ShieldX, AlertTriangle, CheckCircle } from "lucide-react";
+import { submitNotFraudFeedback } from "../services/mockApi";
 
 function TransactionBlocked() {
   const navigate = useNavigate();
   const { transaction, analysisResult } = useTransaction();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Get transaction data from context or use defaults
   const amount = transaction?.amount || analysisResult?.amount || 25000;
@@ -85,6 +88,35 @@ function TransactionBlocked() {
                 </div>
               )}
             </div>
+
+            <button
+              onClick={async () => {
+                try {
+                  setIsSubmitting(true);
+                  const txId = analysisResult?.transactionId || transaction?.transactionId;
+                  if (txId) {
+                    await submitNotFraudFeedback(txId, 'User overrode block decision');
+                  }
+                  navigate('/payment-success');
+                } catch (error) {
+                  console.error('Feedback error:', error);
+                  navigate('/payment-success');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting}
+              className="w-full mb-4 flex items-center justify-center space-x-2 bg-green-50 border border-green-200 text-green-700 py-3 rounded-lg hover:bg-green-100 transition-colors text-sm font-semibold cursor-pointer disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <span>Processing...</span>
+              ) : (
+                <>
+                  <CheckCircle size={18} />
+                  <span>This is not fraud - Approve Anyway</span>
+                </>
+              )}
+            </button>
 
             <button
               onClick={() => navigate('/payment')}

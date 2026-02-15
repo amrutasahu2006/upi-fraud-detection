@@ -33,6 +33,20 @@ class RiskScoringEngine {
   }
 
   /**
+   * Get adaptive weights for a user (uses personalized weights if available)
+   * @param {Object} user - User document
+   * @returns {Object} Weights to use for scoring
+   */
+  _getAdaptiveWeights(user) {
+    // If user has adaptive weights and learning is enabled, use them
+    if (user?.adaptiveWeights && user.privacySettings?.behaviorLearning !== false) {
+      // Merge with defaults to ensure all factors exist
+      return { ...this.weights, ...user.adaptiveWeights };
+    }
+    return this.weights;
+  }
+
+  /**
    * Main risk scoring method
    * @param {Object} transactionData - Transaction details
    * @param {Object} userHistory - User's transaction history
@@ -63,6 +77,10 @@ class RiskScoringEngine {
       aiDetection: true, 
       behaviorLearning: false 
     };
+
+    // Get adaptive weights for this user
+    const weights = this._getAdaptiveWeights(user);
+    console.log('⚖️ Using weights:', weights);
 
     // ===== CRITICAL: Blacklist/Whitelist Override =====
     if (this._isWhitelisted(recipientVPA, whitelist)) {
@@ -115,61 +133,61 @@ class RiskScoringEngine {
     // ===== Factor 1: Amount Anomaly Analysis =====
     const amountRisk = await this._analyzeAmountRisk(amount, effectiveHistory);
     if (amountRisk.score > 0) {
-      const weightedScore = (amountRisk.score / 100) * this.weights.AMOUNT_ANOMALY;
+      const weightedScore = (amountRisk.score / 100) * weights.AMOUNT_ANOMALY;
       riskFactors.amountAnomaly = weightedScore;
       totalScore += weightedScore;
       detailedReasons.push(amountRisk.reason);
-      console.log(`💰 Amount Risk: ${amountRisk.score}% → Weighted: ${weightedScore}`);
+      console.log(`💰 Amount Risk: ${amountRisk.score}% → Weighted: ${weightedScore} (weight: ${weights.AMOUNT_ANOMALY})`);
     }
 
     // ===== Factor 2: Time Pattern Analysis =====
     const timeRisk = await this._analyzeTimeRisk(timestamp, effectiveHistory, userId, user);
     if (timeRisk.score > 0) {
-      const weightedScore = (timeRisk.score / 100) * this.weights.TIME_PATTERN;
+      const weightedScore = (timeRisk.score / 100) * weights.TIME_PATTERN;
       riskFactors.timePattern = weightedScore;
       totalScore += weightedScore;
       detailedReasons.push(timeRisk.reason);
-      console.log(`⏰ Time Risk: ${timeRisk.score}% → Weighted: ${weightedScore}`);
+      console.log(`⏰ Time Risk: ${timeRisk.score}% → Weighted: ${weightedScore} (weight: ${weights.TIME_PATTERN})`);
     }
 
     // ===== Factor 3: New Payee Analysis =====
     const payeeRisk = await this._analyzePayeeRisk(recipientVPA, userId, effectiveHistory);
     if (payeeRisk.score > 0) {
-      const weightedScore = (payeeRisk.score / 100) * this.weights.NEW_PAYEE;
+      const weightedScore = (payeeRisk.score / 100) * weights.NEW_PAYEE;
       riskFactors.newPayee = weightedScore;
       totalScore += weightedScore;
       detailedReasons.push(payeeRisk.reason);
-      console.log(`👤 Payee Risk: ${payeeRisk.score}% → Weighted: ${weightedScore}`);
+      console.log(`👤 Payee Risk: ${payeeRisk.score}% → Weighted: ${weightedScore} (weight: ${weights.NEW_PAYEE})`);
     }
 
     // ===== Factor 4: Device Fingerprint Analysis =====
     const deviceRisk = await this._analyzeDeviceRisk(deviceId, userId, effectiveHistory);
     if (deviceRisk.score > 0) {
-      const weightedScore = (deviceRisk.score / 100) * this.weights.DEVICE_FINGERPRINT;
+      const weightedScore = (deviceRisk.score / 100) * weights.DEVICE_FINGERPRINT;
       riskFactors.deviceFingerprint = weightedScore;
       totalScore += weightedScore;
       detailedReasons.push(deviceRisk.reason);
-      console.log(`📱 Device Risk: ${deviceRisk.score}% → Weighted: ${weightedScore}`);
+      console.log(`📱 Device Risk: ${deviceRisk.score}% → Weighted: ${weightedScore} (weight: ${weights.DEVICE_FINGERPRINT})`);
     }
 
     // ===== Factor 5: Location Anomaly Analysis =====
     const locationRisk = this._analyzeLocationRisk(location, effectiveHistory);
     if (locationRisk.score > 0) {
-      const weightedScore = (locationRisk.score / 100) * this.weights.LOCATION_ANOMALY;
+      const weightedScore = (locationRisk.score / 100) * weights.LOCATION_ANOMALY;
       riskFactors.locationAnomaly = weightedScore;
       totalScore += weightedScore;
       detailedReasons.push(locationRisk.reason);
-      console.log(`📍 Location Risk: ${locationRisk.score}% → Weighted: ${weightedScore}`);
+      console.log(`📍 Location Risk: ${locationRisk.score}% → Weighted: ${weightedScore} (weight: ${weights.LOCATION_ANOMALY})`);
     }
 
     // ===== Factor 6: Velocity Check (Rapid Transactions) =====
     const velocityRisk = await this._analyzeVelocityRisk(userId, amount, timestamp);
     if (velocityRisk.score > 0) {
-      const weightedScore = (velocityRisk.score / 100) * this.weights.VELOCITY_CHECK;
+      const weightedScore = (velocityRisk.score / 100) * weights.VELOCITY_CHECK;
       riskFactors.velocityCheck = weightedScore;
       totalScore += weightedScore;
       detailedReasons.push(velocityRisk.reason);
-      console.log(`🚀 Velocity Risk: ${velocityRisk.score}% → Weighted: ${weightedScore}`);
+      console.log(`🚀 Velocity Risk: ${velocityRisk.score}% → Weighted: ${weightedScore} (weight: ${weights.VELOCITY_CHECK})`);
     }
 
     // Cap total score at 100

@@ -146,8 +146,29 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     }
-  }
+  },
   //Taniya
+  
+  // Adaptive learning weights for fraud detection
+  adaptiveWeights: {
+    AMOUNT_ANOMALY: { type: Number, default: 25, min: 5, max: 50 },
+    TIME_PATTERN: { type: Number, default: 15, min: 5, max: 40 },
+    NEW_PAYEE: { type: Number, default: 20, min: 5, max: 45 },
+    DEVICE_FINGERPRINT: { type: Number, default: 15, min: 5, max: 40 },
+    LOCATION_ANOMALY: { type: Number, default: 10, min: 5, max: 35 },
+    VELOCITY_CHECK: { type: Number, default: 10, min: 5, max: 35 },
+    BLACKLIST_HIT: { type: Number, default: 100 },
+    WHITELIST_HIT: { type: Number, default: -100 }
+  },
+  
+  // Learning statistics
+  learningStats: {
+    totalFeedbackCount: { type: Number, default: 0 },
+    falsePositiveCount: { type: Number, default: 0 },
+    falseNegativeCount: { type: Number, default: 0 },
+    lastWeightAdjustment: { type: Date },
+    learningConfidence: { type: Number, default: 0, min: 0, max: 1 }
+  }
 }, {
   timestamps: true
 });

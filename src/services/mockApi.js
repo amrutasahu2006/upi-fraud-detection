@@ -347,3 +347,180 @@ export async function getChatbotResponse(message, userRiskScore = 50) {
 
 // Export demo scenario for consistent testing
 export { DEMO_SCENARIO as demoScenario };
+
+/**
+ * Submit "Not Fraud" feedback for a transaction
+ * Records user feedback and triggers weight adjustment
+ * @param {string} transactionId - Transaction ID
+ * @param {string} comment - Optional user comment
+ * @returns {Promise<Object>} Feedback result
+ */
+export async function submitNotFraudFeedback(transactionId, comment = '') {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    const response = await fetch('http://localhost:5000/api/feedback/confirm-not-fraud', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ transactionId, userComment: comment })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to submit feedback');
+    }
+    
+    console.log('✅ Feedback submitted:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    throw error;
+  }
+}
+
+/**
+ * Confirm transaction was actually fraud
+ * @param {string} transactionId - Transaction ID
+ * @param {string} comment - Optional user comment
+ * @returns {Promise<Object>} Confirmation result
+ */
+export async function confirmFraud(transactionId, comment = '') {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    const response = await fetch('http://localhost:5000/api/feedback/confirm-fraud', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ transactionId, userComment: comment })
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to confirm fraud');
+    }
+    
+    console.log('🚨 Fraud confirmed:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error confirming fraud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's learning statistics and adaptive weights
+ * @returns {Promise<Object>} Learning stats
+ */
+export async function getLearningStats() {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    const response = await fetch('http://localhost:5000/api/feedback/stats', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to get learning stats');
+    }
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error getting learning stats:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get user's feedback history
+ * @param {number} days - Number of days to look back
+ * @param {number} limit - Maximum number of records
+ * @returns {Promise<Object>} Feedback history
+ */
+export async function getFeedbackHistory(days = 30, limit = 50) {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    const response = await fetch(`http://localhost:5000/api/feedback/history?days=${days}&limit=${limit}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to get feedback history');
+    }
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error getting feedback history:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reset adaptive weights to defaults
+ * @returns {Promise<Object>} Reset result
+ */
+export async function resetAdaptiveWeights() {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('Authentication required');
+    }
+    
+    const response = await fetch('http://localhost:5000/api/feedback/reset-weights', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to reset weights');
+    }
+    
+    console.log('🔄 Weights reset:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Error resetting weights:', error);
+    throw error;
+  }
+}

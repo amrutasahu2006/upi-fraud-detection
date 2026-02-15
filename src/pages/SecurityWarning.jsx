@@ -1,27 +1,42 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, X, MessageCircle, ShieldAlert } from "lucide-react";
+import { AlertTriangle, X, MessageCircle, ShieldAlert, CheckCircle } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 import { useAuth } from "../context/AuthContext";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
+import { submitNotFraudFeedback } from "../services/mockApi";
 
 const SecurityWarning = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const { transaction, analysisResult, riskAnalysis } = useTransaction();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   // Get data from analysis result (preferred) or fallback to riskAnalysis
   const result = analysisResult || riskAnalysis;
   
-  // Handle proceed anyway - confirm the transaction on backend
+  // Handle proceed anyway - submit feedback and confirm transaction
   const handleProceedAnyway = async () => {
     try {
+      setIsSubmitting(true);
+      
       if (!result?.transactionId) {
         console.warn('No transaction ID available, proceeding without confirmation');
         navigate('/payment-success');
         return;
       }
 
+      // Submit "Not Fraud" feedback first
+      console.log('📤 Submitting "Not Fraud" feedback:', result.transactionId);
+      try {
+        await submitNotFraudFeedback(result.transactionId, 'User proceeded despite warning');
+        console.log('✅ Feedback submitted');
+      } catch (feedbackError) {
+        console.error('⚠️ Feedback failed:', feedbackError);
+      }
+      
+      // Confirm transaction
       console.log('📤 Confirming transaction:', result.transactionId);
       
       const response = await fetch(`http://localhost:5000/api/transactions/confirm/${result.transactionId}`, {
@@ -36,16 +51,16 @@ const SecurityWarning = () => {
       
       if (!response.ok || !data.success) {
         console.error('❌ Failed to confirm transaction:', data.message);
-        // Still proceed to success page even if confirmation fails
       } else {
-        console.log('✅ Transaction confirmed successfully:', data.data);
+        console.log('✅ Transaction confirmed:', data.data);
       }
 
       navigate('/payment-success');
     } catch (error) {
-      console.error('Error confirming transaction:', error);
-      // Still proceed to success even if there's an error
+      console.error('Error:', error);
       navigate('/payment-success');
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -166,8 +181,8 @@ const SecurityWarning = () => {
                     <MessageCircle size={18} />
                     <span>Ask bot for help</span>
                 </button>
-                <button onClick={handleProceedAnyway} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer">
-                    Proceed Anyway
+                <button onClick={handleProceedAnyway} disabled={isSubmitting} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50">
+                    {isSubmitting ? 'Processing...' : 'Proceed Anyway'}
                 </button>
             </div>
           </div>
