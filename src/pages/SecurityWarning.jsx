@@ -9,12 +9,12 @@ import { submitNotFraudFeedback } from "../services/mockApi";
 const SecurityWarning = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
-  const { transaction, analysisResult, riskAnalysis } = useTransaction();
+  const { currentTransaction, riskAnalysis } = useTransaction();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
-  // Get data from analysis result (preferred) or fallback to riskAnalysis
-  const result = analysisResult || riskAnalysis;
+  // Get data from riskAnalysis (preferred) - this is set by setAnalysisResult from UPIPayment
+  const result = riskAnalysis;
   
   // Handle proceed anyway - submit feedback and confirm transaction
   const handleProceedAnyway = async () => {
@@ -94,8 +94,8 @@ const SecurityWarning = () => {
   
   const decision = result?.decision || 'WARN';
   const riskScore = result?.riskScore || 0;
-  const amount = transaction?.amount || result?.amount || 0;
-  const recipientVPA = transaction?.recipient?.upi || result?.recipientVPA || 'unknown@bank';
+  const amount = currentTransaction?.amount || result?.amount || 0;
+  const recipientVPA = currentTransaction?.recipient?.upi || result?.recipientVPA || 'unknown@bank';
   const delayDuration = result?.metadata?.delayDuration || 300; // seconds
   const reasons = result?.detailedReasons || [];
 

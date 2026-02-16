@@ -129,17 +129,47 @@ const TransactionRiskDetails = () => {
     isNewDevice: deviceAnalysis?.isNewDevice || displayRiskFactors.includes('newDevice')
   };
 
-  // Location details with reverse geocoding simulation - use transaction location first, then context
+  // Location details with reverse geocoding - use transaction location first, then context
   const locationData = currentTransaction?.location || effectiveUserLocation;
+  
+  // Helper function to build detailed address string
+  const buildDetailedAddress = (loc) => {
+    if (!loc) return "Unknown Location";
+    
+    // If formattedAddress is available from geocoding, use it
+    if (loc.formattedAddress) {
+      return loc.formattedAddress;
+    }
+    
+    // Otherwise, build from individual components
+    const parts = [];
+    if (loc.road) parts.push(loc.road);
+    if (loc.suburb || loc.neighbourhood) parts.push(loc.suburb || loc.neighbourhood);
+    if (loc.city) parts.push(loc.city);
+    if (loc.district && loc.district !== loc.city) parts.push(loc.district);
+    if (loc.state) parts.push(loc.state);
+    if (loc.postcode) parts.push(loc.postcode);
+    if (loc.country) parts.push(loc.country);
+    
+    return parts.length > 0 ? parts.join(', ') : `${loc.city || 'Unknown City'}, ${loc.state || 'Unknown State'}, India`;
+  };
+  
   const currentLocation = locationData ? {
     latitude: locationData.latitude,
     longitude: locationData.longitude,
     accuracy: locationData.accuracy,
-    // In a real app, this would come from reverse geocoding API
-    city: locationAnalysis?.currentLocation?.city || "Unknown City",
-    state: locationAnalysis?.currentLocation?.state || "Unknown State",
-    region: "Unknown Region", // This can be improved with a proper geocoding API
-    country: "India"
+    // Detailed address components from geocoding
+    city: locationAnalysis?.location?.city || locationData.city || "Unknown City",
+    state: locationAnalysis?.location?.state || locationData.state || "Unknown State",
+    country: locationAnalysis?.location?.country || locationData.country || "India",
+    suburb: locationAnalysis?.location?.suburb || locationData.suburb || "",
+    district: locationAnalysis?.location?.district || locationData.district || "",
+    road: locationAnalysis?.location?.road || locationData.road || "",
+    neighbourhood: locationAnalysis?.location?.neighbourhood || locationData.neighbourhood || "",
+    postcode: locationAnalysis?.location?.postcode || locationData.postcode || "",
+    formattedAddress: locationAnalysis?.location?.formattedAddress || locationData.formattedAddress || "",
+    // Display address
+    displayAddress: buildDetailedAddress(locationAnalysis?.location || locationData)
   } : null;
 
   // Get detailed risk information
@@ -176,22 +206,40 @@ const TransactionRiskDetails = () => {
   console.log("  Location:", currentLocation);
   console.log("  Device:", deviceInfo);
 
-  // Prepare text for Amount Analysis to avoid showing "unknown"
+  // Prepare text for Amount Analysis to be consistent with time analysis
   const amountPatterns = amountRiskDetails?.patterns;
   let amountDetailsText = 'Analyzing transaction patterns...';
+  
+  // Check if amount history is established.
+  const hasAmountHistory = amountPatterns?.hasEnoughData && typeof amountPatterns?.averageAmount === 'number';
+
   if (amountRiskDetails) {
-    if (amountPatterns?.hasEnoughData && typeof amountPatterns?.averageAmount === 'number') {
+    // If there IS enough data for amount patterns, show the detailed average comparison.
+    if (hasAmountHistory) {
       const averageAmount = amountPatterns.averageAmount;
       const multiplier = (transactionAmount / averageAmount).toFixed(1);
-      amountDetailsText = `This amount is ${multiplier}x higher than your average of ₹${averageAmount.toFixed(0)}.`;
-    } else if (amountPatterns && !amountPatterns.hasEnoughData) {
+      
+      if (hasAmountRisk) {
+        amountDetailsText = `This amount is ${multiplier}x higher than your usual average of ₹${averageAmount.toFixed(0)}.`;
+      } else {
+        amountDetailsText = `Your average transaction amount is ₹${averageAmount.toFixed(0)}.`;
+      }
+    }
+    // If there is a risk but no established amount history, use a generic message.
+    else if (hasAmountRisk) {
+      amountDetailsText = 'This amount is considered unusual for a new or establishing payment pattern.';
+    }
+    // If there's not enough data for amount patterns, it's the first transaction.
+    else if (amountPatterns && !amountPatterns.hasEnoughData) {
       amountDetailsText = 'First transaction - building transaction history...';
-    } else if (amountRiskDetails.reason) {
+    }
+    // Fallback to a generic reason if one exists.
+    else if (amountRiskDetails.reason) {
       amountDetailsText = amountRiskDetails.reason;
     }
-  } else if (amountAnalysis?.patterns?.hasEnoughData && typeof amountAnalysis?.patterns?.averageAmount === 'number') {
-    // Fallback to direct amountAnalysis data if amountRiskDetails is not available
-    const averageAmount = amountAnalysis.patterns.averageAmount;
+  } else if (hasAmountHistory) {
+    // Fallback to direct amountAnalysis data if amountRiskDetails is not available but amount history exists
+    const averageAmount = amountPatterns.averageAmount;
     const multiplier = (transactionAmount / averageAmount).toFixed(1);
     amountDetailsText = `This amount is ${multiplier}x higher than your average of ₹${averageAmount.toFixed(0)}.`;
   }
@@ -280,15 +328,16 @@ const TransactionRiskDetails = () => {
     {
       icon: Globe,
       title: "Location & GPS Analysis",
-      description: `Location: ${locationAnalysis?.currentLocation?.city || 'Unknown City'}, ${locationAnalysis?.currentLocation?.state || 'Unknown State'}. ${locationAnalysis?.reason || (hasLocationRisk ? '⚠️ Location analysis indicates a risk.' : '✅ Location verified.')}`,
+      description: `Location: ${currentLocation?.displayAddress || 'Unknown Location'}. ${locationAnalysis?.reason || (hasLocationRisk ? '⚠️ Location analysis indicates a risk.' : '✅ Location verified.')}`,
       isRisk: hasLocationRisk,
       type: 'location',
       details: locationAnalysis ? {
-        city: locationAnalysis.currentLocation?.city,
-        state: locationAnalysis.currentLocation?.state,
-        latitude: locationAnalysis.currentLocation?.latitude,
-        longitude: locationAnalysis.currentLocation?.longitude,
-        accuracy: locationAnalysis.currentLocation?.accuracy,
+        formattedAddress: currentLocation?.displayAddress,
+        city: locationAnalysis.location?.city,
+        state: locationAnalysis.location?.state,
+        latitude: locationAnalysis.location?.latitude,
+        longitude: locationAnalysis.location?.longitude,
+        accuracy: locationAnalysis.location?.accuracy,
         typicalLocations: locationAnalysis.typicalLocations,
         nearestDistance: locationAnalysis.nearestDistance,
       } : null
@@ -393,18 +442,19 @@ const TransactionRiskDetails = () => {
                         {category.type === 'amount' && (
                           <>
                             <div>Amount: ₹{category.details.amount.toLocaleString()}</div>
-                            {category.details.averageAmount > 0 && (
-                              <div>Average: ₹{category.details.averageAmount.toFixed(0)}</div>
-                            )}
-                            {category.details.averageAmount > 0 && (
-                              <div>
-                                This is { (category.details.amount / category.details.averageAmount).toFixed(1) }x your average.
-                              </div>
-                            )}
-                            {category.details.deviation !== 0 && (
-                              <div>
-                                ({category.details.deviation.toFixed(1)} standard deviations from the average)
-                              </div>
+                            {/* Only show historical comparisons if amount history is established */}
+                            {hasAmountHistory && category.details.averageAmount > 0 && (
+                              <>
+                                <div>Average: ₹{category.details.averageAmount.toFixed(0)}</div>
+                                <div>
+                                  This is { (category.details.amount / category.details.averageAmount).toFixed(1) }x your average.
+                                </div>
+                                {category.details.deviation !== 0 && (
+                                  <div>
+                                    ({category.details.deviation.toFixed(1)} standard deviations from the average)
+                                  </div>
+                                )}
+                              </>
                             )}
                           </>
                         )}
@@ -424,7 +474,7 @@ const TransactionRiskDetails = () => {
                         )}
                         {category.type === 'location' && category.details && (
                           <>
-                            <div>Location: {category.details.city || 'N/A'}, {category.details.state || 'N/A'}</div>
+                            <div>Location: {category.details.formattedAddress || `${category.details.city}, ${category.details.state}`}</div>
                             {category.details.latitude && <div>Coordinates: {category.details.latitude.toFixed(4)}, {category.details.longitude.toFixed(4)}</div>}
                             {typeof category.details.nearestDistance === 'number' && <div>Distance from typical: {category.details.nearestDistance.toFixed(1)} km</div>}
                           </>

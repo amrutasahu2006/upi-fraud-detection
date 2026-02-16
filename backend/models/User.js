@@ -443,11 +443,56 @@ userSchema.methods.analyzeLocation = async function(locationData) {
     console.log(`✅ Real-time geocoding: ${city}, ${state}, ${country}`);
   } catch (error) {
     console.error('❌ Geocoding failed, using fallback:', error.message);
-    // Fallback to simulation if API fails
-    if (currentLat > 15 && currentLat < 25 && currentLng > 65 && currentLng < 85) {
-      city = "Mumbai";
-      state = "Maharashtra";
-      country = "India";
+    // Enhanced fallback for India coordinates - matches geocoding.js fallback logic
+    if (currentLat >= 6.0 && currentLat <= 35.5 && currentLng >= 68.0 && currentLng <= 97.5) {
+      // Mumbai region (19.0717, 72.9172)
+      if (currentLat >= 18.9 && currentLat <= 19.3 && currentLng >= 72.7 && currentLng <= 73.3) {
+        city = "Mumbai";
+        state = "Maharashtra";
+        country = "India";
+      }
+      // Delhi region
+      else if (currentLat >= 28.4 && currentLat <= 28.9 && currentLng >= 76.8 && currentLng <= 77.4) {
+        city = "Delhi";
+        state = "Delhi";
+        country = "India";
+      }
+      // Bangalore region
+      else if (currentLat >= 12.8 && currentLat <= 13.2 && currentLng >= 77.4 && currentLng <= 77.8) {
+        city = "Bangalore";
+        state = "Karnataka";
+        country = "India";
+      }
+      // Chennai region
+      else if (currentLat >= 12.9 && currentLat <= 13.2 && currentLng >= 80.1 && currentLng <= 80.4) {
+        city = "Chennai";
+        state = "Tamil Nadu";
+        country = "India";
+      }
+      // Kolkata region
+      else if (currentLat >= 22.5 && currentLat <= 22.7 && currentLng >= 88.2 && currentLng <= 88.4) {
+        city = "Kolkata";
+        state = "West Bengal";
+        country = "India";
+      }
+      // Hyderabad region
+      else if (currentLat >= 17.3 && currentLat <= 17.5 && currentLng >= 78.3 && currentLng <= 78.6) {
+        city = "Hyderabad";
+        state = "Telangana";
+        country = "India";
+      }
+      // Pune region
+      else if (currentLat >= 18.4 && currentLat <= 18.7 && currentLng >= 73.7 && currentLng <= 74.0) {
+        city = "Pune";
+        state = "Maharashtra";
+        country = "India";
+      }
+      // Other India locations - default to Maharashtra as fallback
+      else {
+        city = "Unknown City";
+        state = "Maharashtra";
+        country = "India";
+      }
     }
   }
 

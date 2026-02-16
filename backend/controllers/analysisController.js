@@ -171,22 +171,31 @@ async function getUserTransactionHistory(userId) {
       userId,
       status: 'completed',
       createdAt: { $gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) } // Last 90 days
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).lean(); // Use .lean() for faster, plain JS objects
 
     if (transactions.length === 0) {
       return {
+        transactions: [],
         count: 0,
-        averageAmount: 5000,
-        maxAmount: 10000,
+        averageAmount: 0, // Default to 0 if no history
+        maxAmount: 0,
         commonLocation: null,
-        knownPayees: []
+        knownPayees: [],
+        knownDevices: []
       };
     }
 
     const amounts = transactions.map(t => t.amount);
     const averageAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
     const maxAmount = Math.max(...amounts);
-    const knownPayees = [...new Set(transactions.map(t => t.recipientVPA))];
+    
+    // FIX: Include BOTH payeeUpiId AND recipientVPA as known payees to ensure consistency
+    // Some transactions might use payeeUpiId, others might use recipientVPA
+    const payeeUpiIds = transactions.map(t => t.payeeUpiId).filter(Boolean);
+    const recipientVPAs = transactions.map(t => t.recipientVPA).filter(Boolean);
+    const knownPayees = [...new Set([...payeeUpiIds, ...recipientVPAs])];
+    
+    const knownDevices = [...new Set(transactions.map(t => t.deviceId).filter(Boolean))];
 
     // Find most common location
     const locationCounts = {};
@@ -201,20 +210,24 @@ async function getUserTransactionHistory(userId) {
       : null;
 
     return {
+      transactions, // Return the raw transactions
       count: transactions.length,
       averageAmount: Math.round(averageAmount),
       maxAmount,
       commonLocation,
-      knownPayees
+      knownPayees,
+      knownDevices
     };
   } catch (error) {
     console.error('Error getting user history:', error);
     return {
+      transactions: [],
       count: 0,
-      averageAmount: 5000,
-      maxAmount: 10000,
+      averageAmount: 0,
+      maxAmount: 0,
       commonLocation: null,
-      knownPayees: []
+      knownPayees: [],
+      knownDevices: []
     };
   }
 }
