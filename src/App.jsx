@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 // Pages
 import SecurityChatbot from "./pages/SecurityChatbot";
 import SecurityRecommendations from "./pages/SecurityRecommendations";
+import ConnectedDevices from "./pages/ConnectedDevices";
 import TransactionBlocked from "./pages/TransactionBlocked";
 import SecurityWarning from "./pages/SecurityWarning";
 import UPIPayment from "./pages/UPIPayment";
@@ -132,6 +133,14 @@ function App() {
 
             {/* Security & Recommendations */}
             <Route path="/recommendations" element={<SecurityRecommendations />} />
+            <Route 
+              path="/connected-devices" 
+              element={
+                <ProtectedRoute>
+                  <ConnectedDevices />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/safety" element={<Safety />} />
             <Route path="/privacy-settings" element={<PrivacySettings />} />
 

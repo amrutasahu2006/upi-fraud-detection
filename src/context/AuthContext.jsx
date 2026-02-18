@@ -55,10 +55,18 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      // Get or create device ID
+      let deviceId = localStorage.getItem('deviceId');
+      if (!deviceId) {
+        deviceId = `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        localStorage.setItem('deviceId', deviceId);
+      }
+
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Device-Id': deviceId,
         },
         body: JSON.stringify({ email, password }),
       });
@@ -66,8 +74,14 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        const { token, user } = data;
+        const { token, user, deviceId: returnedDeviceId } = data;
         localStorage.setItem('token', token);
+        
+        // Update deviceId if backend returned a different one
+        if (returnedDeviceId) {
+          localStorage.setItem('deviceId', returnedDeviceId);
+        }
+        
         setToken(token);
         setUser(user);
         return { success: true, user };

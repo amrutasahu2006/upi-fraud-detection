@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Monitor } from "lucide-react";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
 
 function SecurityRecommendations() {
@@ -216,6 +216,28 @@ function SecurityRecommendations() {
                     Current limit: {dailyLimit ? `₹${dailyLimit.toLocaleString()}` : 'Not Set'}
                   </p>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Review Connected Devices Card */}
+          <div className="mb-8 bg-gradient-to-br from-red-50 to-red-50 border border-red-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="flex items-start gap-4 md:gap-6">
+              <div className="p-3 md:p-4 bg-red-100 rounded-lg">
+                <Monitor size={32} className="text-red-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Review Connected Devices</h3>
+                <p className="text-gray-700 mb-4">
+                  Remove unrecognized devices from your account.
+                </p>
+                
+                <button
+                  onClick={() => navigate('/connected-devices')}
+                  className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                  Review Devices
+                </button>
               </div>
             </div>
           </div>
