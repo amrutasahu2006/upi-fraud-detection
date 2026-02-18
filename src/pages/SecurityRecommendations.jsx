@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { DollarSign, Monitor } from "lucide-react";
+import { DollarSign, Monitor, Shield, Lock } from "lucide-react";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
+import PasswordConfirmModal from "../components/PasswordConfirmModal";
 
 function SecurityRecommendations() {
   const { token, isAuthenticated } = useAuth();
@@ -12,6 +13,9 @@ function SecurityRecommendations() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const riskFactors = ["newPayee", "highAmount", "newDevice", "enable2FA"];
 
@@ -21,6 +25,7 @@ function SecurityRecommendations() {
       return;
     }
     fetchDailyLimit();
+    fetch2FAStatus();
   }, [isAuthenticated, token]);
 
   const fetchDailyLimit = async () => {
@@ -39,6 +44,49 @@ function SecurityRecommendations() {
     } catch (error) {
       console.error('Error fetching daily limit:', error);
       setLoading(false);
+    }
+  };
+
+  const fetch2FAStatus = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/2fa-status', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        setTwoFactorEnabled(data.data.twoFactorEnabled);
+      }
+      setLoadingStatus(false);
+    } catch (error) {
+      console.error('Error fetching 2FA status:', error);
+      setLoadingStatus(false);
+    }
+  };
+
+  const handleDisable2FA = async (password) => {
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/disable-2fa', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setTwoFactorEnabled(false);
+        setShowPasswordModal(false);
+        setMessage({ type: 'success', text: '✅ 2FA disabled successfully!' });
+        setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+      } else {
+        throw new Error(data.message || 'Failed to disable 2FA');
+      }
+    } catch (error) {
+      console.error('Error disabling 2FA:', error);
+      throw error;
     }
   };
 
@@ -220,6 +268,46 @@ function SecurityRecommendations() {
             </div>
           </div>
 
+          {/* Two-Factor Authentication Card */}
+          <div className="mb-8 bg-gradient-to-br from-green-50 to-green-50 border border-green-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="flex items-start gap-4 md:gap-6">
+              <div className="p-3 md:p-4 bg-green-100 rounded-lg">
+                <Shield size={32} className="text-green-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-900">Two-Factor Authentication</h3>
+                  {twoFactorEnabled && (
+                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                      Enabled
+                    </span>
+                  )}
+                </div>
+                <p className="text-gray-700 mb-4">
+                  {twoFactorEnabled
+                    ? 'Your account is protected with 2FA. Manage your settings below.'
+                    : 'Add an extra layer of security to your account with two-factor authentication.'}
+                </p>
+                
+                {twoFactorEnabled ? (
+                  <button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="w-full md:w-auto px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                  >
+                    Disable 2FA
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/setup-2fa')}
+                    className="w-full md:w-auto px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                  >
+                    Enable 2FA
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Review Connected Devices Card */}
           <div className="mb-8 bg-gradient-to-br from-red-50 to-red-50 border border-red-200 rounded-2xl p-6 md:p-8 shadow-sm">
             <div className="flex items-start gap-4 md:gap-6">
@@ -261,6 +349,16 @@ function SecurityRecommendations() {
           />
         </main>
       </div>
+
+      {/* Password Confirmation Modal for Disabling 2FA */}
+      {showPasswordModal && (
+        <PasswordConfirmModal
+          title="Disable Two-Factor Authentication"
+          message="Enter your password to confirm disabling 2FA"
+          onConfirm={handleDisable2FA}
+          onCancel={() => setShowPasswordModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import TwoFactorPrompt from '../../components/TwoFactorPrompt';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -9,8 +10,10 @@ const LoginPage = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [show2FA, setShow2FA] = useState(false);
+  const [tempUserId, setTempUserId] = useState(null);
   
-  const { login } = useAuth();
+  const { login, verify2FALogin } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -28,12 +31,36 @@ const LoginPage = () => {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      navigate('/');
+      if (result.requires2FA) {
+        // Show 2FA prompt
+        setTempUserId(result.userId);
+        setShow2FA(true);
+      } else {
+        // Login complete
+        navigate('/');
+      }
     } else {
       setError(result.message || 'Login failed');
     }
     
     setLoading(false);
+  };
+
+  const handle2FAVerify = async (code, useBackupCode) => {
+    const result = await verify2FALogin(tempUserId, code, useBackupCode);
+    
+    if (result.success) {
+      setShow2FA(false);
+      navigate('/');
+    } else {
+      throw new Error(result.message || 'Verification failed');
+    }
+  };
+
+  const handle2FACancel = () => {
+    setShow2FA(false);
+    setTempUserId(null);
+    setError('Login cancelled. Please try again.');
   };
 
   return (
@@ -105,6 +132,14 @@ const LoginPage = () => {
           </p>
         </div>
       </div>
+
+      {/* 2FA Prompt Modal */}
+      {show2FA && (
+        <TwoFactorPrompt
+          onVerify={handle2FAVerify}
+          onCancel={handle2FACancel}
+        />
+      )}
     </div>
   );
 };

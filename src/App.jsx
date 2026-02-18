@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SecurityChatbot from "./pages/SecurityChatbot";
 import SecurityRecommendations from "./pages/SecurityRecommendations";
 import ConnectedDevices from "./pages/ConnectedDevices";
+import Setup2FA from "./pages/Setup2FA";
 import TransactionBlocked from "./pages/TransactionBlocked";
 import SecurityWarning from "./pages/SecurityWarning";
 import UPIPayment from "./pages/UPIPayment";
@@ -138,6 +139,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ConnectedDevices />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/setup-2fa" 
+              element={
+                <ProtectedRoute>
+                  <Setup2FA />
                 </ProtectedRoute>
               } 
             />

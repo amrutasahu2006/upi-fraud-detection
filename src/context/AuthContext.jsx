@@ -74,6 +74,16 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        // Check if 2FA is required
+        if (data.requires2FA) {
+          return { 
+            success: true, 
+            requires2FA: true, 
+            userId: data.userId 
+          };
+        }
+
+        // Normal login flow (no 2FA or 2FA already verified)
         const { token, user, deviceId: returnedDeviceId } = data;
         localStorage.setItem('token', token);
         
@@ -90,6 +100,45 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Login error:', error);
+      return { success: false, message: 'Network error occurred' };
+    }
+  };
+
+  const verify2FALogin = async (userId, code, useBackupCode = false) => {
+    try {
+      const deviceId = localStorage.getItem('deviceId');
+      
+      const response = await fetch('http://localhost:5000/api/auth/verify-2fa-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Id': deviceId || '',
+        },
+        body: JSON.stringify({ 
+          userId, 
+          token: code, 
+          useBackupCode 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        const { token, user, deviceId: returnedDeviceId } = data;
+        localStorage.setItem('token', token);
+        
+        if (returnedDeviceId) {
+          localStorage.setItem('deviceId', returnedDeviceId);
+        }
+        
+        setToken(token);
+        setUser(user);
+        return { success: true, user };
+      } else {
+        return { success: false, message: data.message || 'Verification failed' };
+      }
+    } catch (error) {
+      console.error('2FA verification error:', error);
       return { success: false, message: 'Network error occurred' };
     }
   };
@@ -179,6 +228,7 @@ export const AuthProvider = ({ children }) => {
     user,
     token,
     login,
+    verify2FALogin,
     register,
     logout,
     updateProfile,

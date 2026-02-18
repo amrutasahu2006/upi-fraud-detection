@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { getPrivacySettings, updatePrivacySettings } = require('../controllers/authController');
+const { 
+  getPrivacySettings, 
+  updatePrivacySettings,
+  setup2FA,
+  verify2FA,
+  verify2FALogin,
+  disable2FA,
+  get2FAStatus
+} = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 const User = require('../models/User');
 const {
@@ -14,6 +22,13 @@ const {
 // Public routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+
+// 2FA routes
+router.post('/verify-2fa-login', verify2FALogin); // Public - for login verification
+router.post('/setup-2fa', authenticate, setup2FA); // Protected
+router.post('/verify-2fa', authenticate, verify2FA); // Protected
+router.post('/disable-2fa', authenticate, disable2FA); // Protected
+router.get('/2fa-status', authenticate, get2FAStatus); // Protected
 
 // Protected routes
 router.get('/me', authenticate, getMe);

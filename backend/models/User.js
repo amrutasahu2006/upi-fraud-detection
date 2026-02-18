@@ -228,6 +228,22 @@ const userSchema = new mongoose.Schema({
   lastLogoutAll: {
     type: Date,
     default: null
+  },
+
+  // Two-Factor Authentication fields
+  twoFactorSecret: {
+    type: String,
+    default: null,
+    select: false // Don't include in queries by default for security
+  },
+  twoFactorEnabled: {
+    type: Boolean,
+    default: false
+  },
+  backupCodes: {
+    type: [String],
+    default: [],
+    select: false // Don't include in queries by default for security
   }
 }, {
   timestamps: true
