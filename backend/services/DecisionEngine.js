@@ -59,6 +59,7 @@ class DecisionEngine {
    */
   makeDecision(riskAnalysis, options = {}) {
     const { totalScore, riskLevel, riskFactors, detailedReasons, decision: suggestedDecision, amount } = riskAnalysis;
+    const { dailyLimitInfo } = options;
 
     console.log('🎯 Decision Engine: Score', totalScore, '→ Suggested:', suggestedDecision, '→ Amount:', amount);
 
@@ -91,6 +92,9 @@ class DecisionEngine {
         reasons: detailedReasons
       });
     }
+
+    // Daily limit is handled by frontend only (not a security block, just a user control)
+    // Backend passes dailyLimitInfo in response but doesn't enforce BLOCK
 
     // Auto-approve low amount transactions (< 1000)
     if (amount && amount < 1000) {

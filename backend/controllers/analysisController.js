@@ -37,6 +37,40 @@ exports.analyzeTransaction = async (req, res) => {
       timestamp: timestamp || new Date()
     });
 
+    // Step 0: Get user's daily limit and today's spending
+    const user = await User.findById(userId).select('dailyTransactionLimit');
+    let dailyLimitInfo = { limit: null, spentToday: 0, remaining: null };
+    
+    if (user && user.dailyTransactionLimit) {
+      // Calculate today's spending (completed transactions only)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayTransactions = await Transaction.find({
+        userId,
+        status: 'completed',
+        createdAt: { $gte: today }
+      });
+      
+      const spentToday = todayTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+      const remaining = user.dailyTransactionLimit - spentToday;
+      
+      dailyLimitInfo = {
+        limit: user.dailyTransactionLimit,
+        spentToday,
+        remaining,
+        wouldExceed: (spentToday + amount) > user.dailyTransactionLimit
+      };
+      
+      console.log('💰 Daily Limit Check:', {
+        limit: dailyLimitInfo.limit,
+        spentToday: dailyLimitInfo.spentToday,
+        newTransaction: amount,
+        remaining: dailyLimitInfo.remaining,
+        wouldExceed: dailyLimitInfo.wouldExceed
+      });
+    }
+
     // Step 1: Get user's transaction history
     const userHistory = await getUserTransactionHistory(userId);
 
@@ -73,8 +107,8 @@ exports.analyzeTransaction = async (req, res) => {
       decision: riskAnalysis.decision
     });
 
-    // Step 4: Make decision using DecisionEngine
-    const decision = DecisionEngine.makeDecision(riskAnalysis);
+    // Step 4: Make decision using DecisionEngine (with daily limit info)
+    const decision = DecisionEngine.makeDecision(riskAnalysis, { dailyLimitInfo });
 
     console.log('🎯 Decision Made:', decision.action);
 
@@ -148,6 +182,7 @@ exports.analyzeTransaction = async (req, res) => {
         detailedReasons: riskAnalysis.detailedReasons,
         breakdown: riskAnalysis.breakdown,
         analysis: riskAnalysis.analysis, // Include detailed analysis data
+        dailyLimitInfo: dailyLimitInfo, // Include daily limit info for frontend
         timestamp: decision.timestamp
       }
     });

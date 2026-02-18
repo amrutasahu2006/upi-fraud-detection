@@ -180,6 +180,13 @@ const userSchema = new mongoose.Schema({
     falseNegativeCount: { type: Number, default: 0 },
     lastWeightAdjustment: { type: Date },
     learningConfidence: { type: Number, default: 0, min: 0, max: 1 }
+  },
+
+  // Daily transaction limit
+  dailyTransactionLimit: {
+    type: Number,
+    default: null,
+    min: 1000
   }
 }, {
   timestamps: true
