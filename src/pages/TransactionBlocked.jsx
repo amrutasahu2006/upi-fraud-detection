@@ -1,24 +1,35 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useTransaction } from "../context/TransactionContext";
-import { ShieldAlert, AlertTriangle, CheckCircle, XCircle, Home } from "lucide-react";
-import { submitNotFraudFeedback } from "../services/mockApi";
+import { ShieldAlert, AlertTriangle, Home } from "lucide-react";
 
 function TransactionBlocked() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { transaction, analysisResult } = useTransaction();
+  const { currentTransaction: transaction, riskAnalysis: analysisResult } = useTransaction();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 1. Get data from Navigation State (Priority) OR Context (Fallback)
+  // 1. Get data from Navigation State (Priority) OR Context (Fallback) OR Analysis Result
   const stateData = location.state || {};
   
-  const amount = transaction?.amount || 0;
-  const recipientVPA = transaction?.payeeUpiId || transaction?.recipient?.upi || 'Unknown Recipient';
+  console.log('🔍 TransactionBlocked - Location State amount:', stateData.amount);
+  console.log('🔍 TransactionBlocked - Location State recipientVPA:', stateData.recipientVPA);
+  console.log('🔍 TransactionBlocked - Location State recipientName:', stateData.recipientName);
+  console.log('🔍 TransactionBlocked - Transaction Context:', transaction);
+  console.log('🔍 TransactionBlocked - Analysis Result:', analysisResult);
+  
+  // Priority: State > Analysis Result > Transaction Context
+  const amount = stateData.amount || analysisResult?.amount || transaction?.amount || 0;
+  const recipientVPA = stateData.recipientVPA || analysisResult?.recipientVPA || transaction?.payeeUpiId || transaction?.recipient?.upi || 'Unknown Recipient';
+  const recipientName = stateData.recipientName || analysisResult?.recipientName || transaction?.recipient?.name || 'Unknown Recipient';
+  
+  console.log('📊 Final Resolved Values - Amount:', amount, 'VPA:', recipientVPA, 'Name:', recipientName);
   
   // Data passed from UPIPaymentClean.jsx
-  const riskScore = stateData.riskScore || 99;
+  const riskScore = stateData.riskScore || analysisResult?.riskScore || 80;
   const reason = stateData.reason || "High Security Risk Detected";
+  // Always show BLOCK decision on this page since transaction is blocked
+  const decision = 'BLOCK';
   
   // Ensure reasons is always an array for mapping
   const reasonsList = Array.isArray(stateData.reasons) ? stateData.reasons : [reason];
@@ -61,7 +72,10 @@ function TransactionBlocked() {
 
   <div className="p-4 border-b border-slate-100 flex justify-between items-center">
     <span className="text-sm text-slate-500">To</span>
-    <span className="text-sm font-medium text-slate-900">{recipientVPA}</span>
+    <div className="text-right">
+      <p className="text-sm font-medium text-slate-900">{recipientName}</p>
+      <p className="text-xs text-slate-500">{recipientVPA}</p>
+    </div>
   </div>
 
   {/* Blocking Reasons */}
@@ -113,42 +127,8 @@ function TransactionBlocked() {
   </div>
 </div>
 
-{/* Approve Anyway Button */}
-<button
-  onClick={async () => {
-    try {
-      setIsSubmitting(true);
-      const txId = analysisResult?.transactionId || transaction?.transactionId;
-      if (txId) {
-        await submitNotFraudFeedback(txId, 'User overrode block decision');
-      }
-      navigate('/payment-success');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }}
-  disabled={isSubmitting}
-  className="w-full mb-4 flex items-center justify-center gap-2 bg-green-50 border border-green-200 text-green-700 py-3 rounded-lg font-semibold"
->
-  {isSubmitting ? 'Processing...' : (
-    <>
-      <CheckCircle size={18} />
-      This is not fraud – Approve Anyway
-    </>
-  )}
-</button>
-
-
           {/* Actions */}
           <div className="w-full space-y-3">
-            <button
-              onClick={() => navigate('/payment')}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              <XCircle size={20} />
-              Cancel Transaction
-            </button>
-
             <button
               onClick={() => navigate('/')}
               className="w-full bg-white border border-slate-200 text-slate-600 font-semibold py-3 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"

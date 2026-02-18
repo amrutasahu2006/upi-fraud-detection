@@ -133,16 +133,39 @@ function UPIPaymentClean() {
         const decision = result.data.decision;
         const riskScore = result.data.riskScore || 0;
         console.log('🎯 Routing based on decision:', decision, 'Risk score:', riskScore);
+        console.log('📊 Result data contains:', {
+          amount: result.data.amount,
+          recipientVPA: result.data.recipientVPA,
+          recipientName: result.data.recipientName,
+          decision: result.data.decision,
+          riskScore: result.data.riskScore
+        });
 
         // Step 4: Route based on decision
         // 1. BLOCK Logic
         if (decision === 'BLOCK' || riskScore >= 80) {
           console.log('🛑 Critical Risk - Blocking Transaction');
-          updateTransaction({ status: 'blocked', riskScore: riskScore, isBlocked: true });
+          const blockedTransaction = {
+            amount: result.data.amount || selectedAmount,
+            payeeUpiId: result.data.recipientVPA || upiId,
+            recipient: {
+              upi: result.data.recipientVPA || upiId,
+              name: result.data.recipientName || upiId.split('@')[0]
+            },
+            status: 'blocked',
+            riskScore: riskScore,
+            isBlocked: true
+          };
+          updateTransaction(blockedTransaction);
+          
           navigate('/blocked', { 
               state: { 
                   reason: result.data.detailedReasons?.[0] || "High Risk Detected",
-                  riskScore: riskScore
+                  riskScore: riskScore,
+                  decision: decision,
+                  amount: result.data.amount || selectedAmount,
+                  recipientVPA: result.data.recipientVPA || upiId,
+                  recipientName: result.data.recipientName || upiId.split('@')[0]
               } 
           });
           return;
