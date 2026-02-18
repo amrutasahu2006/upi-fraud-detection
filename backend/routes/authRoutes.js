@@ -97,4 +97,126 @@ router.post('/daily-limit', authenticate, async (req, res) => {
   }
 });
 
+// @route   GET /api/auth/devices
+// @desc    Get all connected devices for the user
+// @access  Private
+router.get('/devices', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('devices');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get current device ID from request headers or generate
+    const currentDeviceId = req.headers['x-device-id'] || req.user.deviceId;
+
+    // Mark current device
+    const devicesWithCurrent = user.devices.map(device => ({
+      ...device.toObject(),
+      isCurrent: device.deviceId === currentDeviceId
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        devices: devicesWithCurrent
+      }
+    });
+  } catch (error) {
+    console.error('Get devices error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching devices'
+    });
+  }
+});
+
+// @route   DELETE /api/auth/devices/:deviceId
+// @desc    Remove a specific device
+// @access  Private
+router.delete('/devices/:deviceId', authenticate, async (req, res) => {
+  try {
+    const { deviceId } = req.params;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Get current device ID
+    const currentDeviceId = req.headers['x-device-id'] || req.user.deviceId;
+
+    if (deviceId === currentDeviceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot remove current device'
+      });
+    }
+
+    // Remove device from array
+    user.devices = user.devices.filter(d => d.deviceId !== deviceId);
+    await user.save();
+
+    console.log('🗑️ Device removed:', deviceId, 'for user:', user.email);
+
+    res.json({
+      success: true,
+      message: 'Device removed successfully'
+    });
+  } catch (error) {
+    console.error('Remove device error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while removing device'
+    });
+  }
+});
+
+// @route   POST /api/auth/logout-all-devices
+// @desc    Logout user from all devices (invalidate all sessions)
+// @access  Private
+router.post('/logout-all-devices', authenticate, async (req, res) => {
+  try {
+    // In a production app, you would:
+    // 1. Invalidate all JWT tokens for this user (if using token blacklist)
+    // 2. Clear all sessions from Redis/database
+    // 3. Update user's tokenVersion or add logout timestamp
+    
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Option: Add a lastLogoutAll timestamp to force re-authentication
+    user.lastLogoutAll = new Date();
+    // Clear all devices
+    user.devices = [];
+    await user.save();
+
+    console.log('🚪 User logged out from all devices:', user.email);
+
+    res.json({
+      success: true,
+      message: 'Successfully logged out from all devices'
+    });
+  } catch (error) {
+    console.error('Logout all devices error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while logging out'
+    });
+  }
+});
+
 module.exports = router;

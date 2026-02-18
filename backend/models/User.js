@@ -55,6 +55,41 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  // Active device sessions
+  devices: [{
+    deviceId: {
+      type: String,
+      required: true
+    },
+    name: {
+      type: String,
+      default: 'Unknown Device'
+    },
+    type: {
+      type: String,
+      enum: ['laptop', 'smartphone', 'tablet', 'desktop', 'other'],
+      default: 'other'
+    },
+    os: String,
+    browser: String,
+    userAgent: String,
+    ipAddress: String,
+    location: {
+      city: String,
+      state: String,
+      country: String,
+      latitude: Number,
+      longitude: Number
+    },
+    lastActive: {
+      type: Date,
+      default: Date.now
+    },
+    loginDate: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   transactions: [{
     transactionId: {
       type: String,
@@ -187,6 +222,12 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: null,
     min: 1000
+  },
+
+  // Last logout from all devices timestamp
+  lastLogoutAll: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

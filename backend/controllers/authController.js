@@ -123,12 +123,87 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Track device information
+    const deviceId = req.headers['x-device-id'] || `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const userAgent = req.headers['user-agent'] || '';
+    const ipAddress = req.ip || req.connection.remoteAddress || '';
+    
+    // Parse user agent for device info
+    const getDeviceInfo = (ua) => {
+      const mobile = /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
+      const tablet = /iPad|Android(?!.*Mobile)/i.test(ua);
+      const ios = /iPhone|iPad|iPod/i.test(ua);
+      const android = /Android/i.test(ua);
+      const windows = /Windows/i.test(ua);
+      const mac = /Macintosh|Mac OS X/i.test(ua);
+      const linux = /Linux/i.test(ua);
+      
+      let type = 'other';
+      if (tablet) type = 'tablet';
+      else if (mobile) type = 'smartphone';
+      else type = 'laptop';
+      
+      let os = 'Unknown';
+      if (ios) os = 'iOS ' + (ua.match(/OS (\d+)_/)?.[1] || '');
+      else if (android) os = 'Android ' + (ua.match(/Android (\d+)/)?.[1] || '');
+      else if (windows) os = 'Windows ' + (ua.match(/Windows NT (\d+\.\d+)/)?.[1] || '');
+      else if (mac) os = 'Mac OS';
+      else if (linux) os = 'Linux';
+      
+      let browser = 'Unknown';
+      if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = 'Chrome';
+      else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
+      else if (/Firefox/i.test(ua)) browser = 'Firefox';
+      else if (/Edg/i.test(ua)) browser = 'Edge';
+      
+      let name = type.charAt(0).toUpperCase() + type.slice(1);
+      if (ios) name = 'iPhone';
+      else if (android && mobile) name = 'Android Phone';
+      else if (android && tablet) name = 'Android Tablet';
+      else if (windows) name = 'Windows PC';
+      else if (mac) name = 'Mac';
+      
+      return { type, os, browser, name };
+    };
+    
+    const deviceInfo = getDeviceInfo(userAgent);
+    
+    // Check if device already exists, update or add new
+    const existingDeviceIndex = user.devices.findIndex(d => d.deviceId === deviceId);
+    if (existingDeviceIndex >= 0) {
+      // Update existing device
+      user.devices[existingDeviceIndex].lastActive = new Date();
+      user.devices[existingDeviceIndex].ipAddress = ipAddress;
+    } else {
+      // Add new device (keep max 10 devices)
+      if (user.devices.length >= 10) {
+        // Remove oldest device
+        user.devices.sort((a, b) => new Date(a.lastActive) - new Date(b.lastActive));
+        user.devices.shift();
+      }
+      
+      user.devices.push({
+        deviceId,
+        name: deviceInfo.name,
+        type: deviceInfo.type,
+        os: deviceInfo.os,
+        browser: deviceInfo.browser,
+        userAgent,
+        ipAddress,
+        location: {
+          country: 'India' // Can be enhanced with IP geolocation
+        },
+        lastActive: new Date(),
+        loginDate: new Date()
+      });
+    }
+
     // Update last login
     user.lastLogin = Date.now();
     await user.save();
 
-    // Generate token
-    const token = generateToken({ id: user._id, role: user.role });
+    // Generate token with deviceId
+    const token = generateToken({ id: user._id, role: user.role, deviceId });
 
     // Return user and token (excluding password)
     const userData = {
@@ -139,6 +214,7 @@ const loginUser = async (req, res) => {
       role: user.role,
       profile: user.profile,
       lastLogin: user.lastLogin,
+      deviceId, // Include deviceId for frontend storage
     };
 
     res.status(200).json({
@@ -146,6 +222,7 @@ const loginUser = async (req, res) => {
       message: 'Login successful',
       token,
       user: userData,
+      deviceId, // Return deviceId
     });
   } catch (error) {
     console.error('Login error:', error);
