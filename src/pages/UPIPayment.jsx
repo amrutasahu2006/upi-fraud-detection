@@ -159,7 +159,8 @@ function UPIPaymentClean() {
           updateTransaction(blockedTransaction);
           
           navigate('/blocked', { 
-              state: { 
+              state: {
+                  transaction: transactionData,
                   reason: result.data.detailedReasons?.[0] || "High Risk Detected",
                   riskScore: riskScore,
                   decision: decision,
