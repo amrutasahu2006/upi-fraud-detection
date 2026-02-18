@@ -13,12 +13,14 @@ function TransactionBlocked() {
   // 1. Get data from Navigation State (Priority) OR Context (Fallback)
   const stateData = location.state || {};
   
-  const amount = transaction?.amount || 0;
-  const recipientVPA = transaction?.payeeUpiId || transaction?.recipient?.upi || 'Unknown Recipient';
+  const transactionDetails = stateData.transaction || {};
+  const amount = transactionDetails.amount || 0;
+  const recipientVPA = transactionDetails.payeeUpiId || transactionDetails.recipient?.upi || 'Unknown Recipient';
   
   // Data passed from UPIPaymentClean.jsx
   const riskScore = stateData.riskScore || 99;
   const reason = stateData.reason || "High Security Risk Detected";
+  const decision = stateData.decision || 'Blocked';
   
   // Ensure reasons is always an array for mapping
   const reasonsList = Array.isArray(stateData.reasons) ? stateData.reasons : [reason];

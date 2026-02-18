@@ -99,6 +99,17 @@ const SecurityWarning = () => {
   const delayDuration = result?.metadata?.delayDuration || 300; // seconds
   const reasons = result?.detailedReasons || [];
 
+  const handleBlock = () => {
+    navigate('/blocked', {
+      state: {
+        transaction: currentTransaction,
+        reason: "Transaction blocked by user from warning screen.",
+        riskScore: riskScore,
+        decision: 'Blocked'
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16">
       {/* Responsive Width Strategy: 
@@ -171,7 +182,7 @@ const SecurityWarning = () => {
             </div>
             
             {/* Primary Action */}
-            <button onClick={() => navigate('/blocked')} className="w-full bg-red-600 text-white py-3.5 sm:py-4 px-4 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-bold text-sm sm:text-base shadow-lg shadow-red-200 cursor-pointer">
+            <button onClick={handleBlock} className="w-full bg-red-600 text-white py-3.5 sm:py-4 px-4 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-bold text-sm sm:text-base shadow-lg shadow-red-200 cursor-pointer">
               Block & Report VPA
             </button>
 
@@ -204,7 +215,7 @@ const SecurityWarning = () => {
                 console.log('Critical action:', rec.action);
                 // Handle urgent actions
                 if (rec.action === "Block VPA") {
-                  navigate('/blocked');
+                  handleBlock();
                 } else if (rec.action === "Enable 2FA") {
                   navigate('/privacy-settings');
                 }

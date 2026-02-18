@@ -140,9 +140,11 @@ function UPIPaymentClean() {
           console.log('🛑 Critical Risk - Blocking Transaction');
           updateTransaction({ status: 'blocked', riskScore: riskScore, isBlocked: true });
           navigate('/blocked', { 
-              state: { 
+              state: {
+                  transaction: transactionData,
                   reason: result.data.detailedReasons?.[0] || "High Risk Detected",
-                  riskScore: riskScore
+                  riskScore: riskScore,
+                  decision: 'Blocked'
               } 
           });
           return;
