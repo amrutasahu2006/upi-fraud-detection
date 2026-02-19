@@ -37,10 +37,22 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Contexts (for RoleBasedRedirect)
 import { useAuth } from "./context/AuthContext";
 
-// Role-based redirect component
+// Role-based redirect component - redirects to login if not authenticated
 function RoleBasedRedirect() {
-  const { user } = useAuth();
-  return user?.role === "admin" ? <Navigate to="/admin/dashboard" replace /> : <UPIPayment />;
+  const { user, isAuthenticated } = useAuth();
+  
+  // If not logged in, redirect to login page
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // If admin, go to admin dashboard
+  if (user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  
+  // Regular user goes to payment page
+  return <UPIPayment />;
 }
 
 // Contexts
