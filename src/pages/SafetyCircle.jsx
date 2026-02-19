@@ -1,8 +1,14 @@
 import React from 'react';
+import { useAuth } from "../context/AuthContext";
 import SyncCircle from '../components/SyncCircle';
-import { Shield, Users, AlertTriangle } from 'lucide-react';
+import { Shield, Users, Phone, CheckCircle, UserCheck } from 'lucide-react';
 
 const SafetyCircle = () => {
+  const { user } = useAuth();
+  
+  // Directly pull the array of IDs from your database object
+  const trustedMembers = user?.trustedCircle || [];
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-2xl mx-auto">
@@ -13,7 +19,7 @@ const SafetyCircle = () => {
 
         <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-8">
           <p className="text-blue-800 text-sm">
-            <strong>How it works:</strong> When you sync your contacts, we find friends already using this app. If anyone in your circle reports a fraud UPI ID, you'll get an instant warning before you pay them.
+            <strong>How it works:</strong> When you sync your contacts, we find friends already using this app. If anyone in your circle reports a fraud UPI ID, you'll get an instant warning.
           </p>
         </div>
 
@@ -21,11 +27,42 @@ const SafetyCircle = () => {
 
         <div className="mt-12">
           <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-            <Users size={20} /> Your Trusted Members
+            <Users size={20} /> Your Trusted Members ({trustedMembers.length})
           </h2>
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-500">
-            No members linked yet. Click the button above to sync with your contacts.
-          </div>
+          
+          {trustedMembers.length > 0 ? (
+            <div className="grid gap-3">
+              {trustedMembers.map((member, index) => {
+                // LOGIC: Handle raw IDs from your DB array
+                const isIdOnly = typeof member === 'string';
+                const displayName = isIdOnly ? `Trusted Member ${member.slice(-4)}` : member.username;
+                const displayPhone = isIdOnly ? "Verified Member" : member.phoneNumber;
+
+                return (
+                  <div key={isIdOnly ? member : member._id} className="bg-white rounded-xl border border-gray-200 p-4 flex justify-between items-center shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold">
+                        {isIdOnly ? <UserCheck size={18} /> : displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">{displayName}</p>
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
+                          <Phone size={12} /> {displayPhone}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded-lg text-xs font-bold border border-green-100">
+                      <CheckCircle size={14} /> PROTECTED
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-500">
+              No members linked yet. Click the button above to sync with your contacts.
+            </div>
+          )}
         </div>
       </div>
     </div>
