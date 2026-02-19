@@ -21,10 +21,53 @@ const validateVPABeforePayment = async (req, res, next) => {
 
     console.log(`🔍 Validating VPA/Phone: ${normalizedIdentifier}`);
 
-    // Step 1: Check global whitelist (banks, trusted merchants)
-    const isWhitelisted = await BlacklistWhitelist.isWhitelisted(normalizedIdentifier);
+    // Step 1: Check global blacklist via cache first (highest priority)
+    const blacklistResult = await VPACacheService.checkVPA(normalizedIdentifier);
 
-    if (isWhitelisted) {
+    if (blacklistResult.flagged) {
+      console.log(`🚨 VPA BLOCKED: ${normalizedIdentifier} - ${blacklistResult.data.reason}`);
+      
+      // Store validation result for transaction logging
+      req.vpaStatus = {
+        checked: true,
+        flagged: true,
+        blacklistData: blacklistResult.data
+      };
+
+      // Block the transaction
+      return res.status(403).json({
+        success: false,
+        blocked: true,
+        reason: 'BLACKLISTED_VPA',
+        message: `⚠️ Transaction Blocked: This recipient (${normalizedIdentifier}) has been flagged for ${blacklistResult.data.reason}`,
+        details: {
+          vpa: blacklistResult.data.vpa,
+          risk_level: blacklistResult.data.risk_level,
+          reason: blacklistResult.data.reason,
+          confidence_score: blacklistResult.data.confidence_score,
+          reported_at: blacklistResult.data.reported_at
+        },
+        recommendation: 'Please verify the recipient details. If you believe this is a mistake, contact support.'
+      });
+    }
+
+    // Step 2: Check global whitelist (banks, trusted merchants)
+    // Using direct query instead of isWhitelisted method due to potential bug
+    const whitelisted = await BlacklistWhitelist.findOne({
+      type: 'whitelist',
+      $or: [
+        { vpa: normalizedIdentifier },
+        { phoneNumber: normalizedIdentifier },
+        { accountNumber: normalizedIdentifier }
+      ],
+      isActive: true,
+      $or: [
+        { expiresAt: null },
+        { expiresAt: { $gt: new Date() } }
+      ]
+    });
+
+    if (whitelisted) {
       console.log(`✅ VPA whitelisted (trusted): ${normalizedIdentifier}`);
       req.vpaStatus = {
         checked: true,
@@ -35,37 +78,7 @@ const validateVPABeforePayment = async (req, res, next) => {
       return next();
     }
 
-    // Step 2: Check blacklist via cache
-    const result = await VPACacheService.checkVPA(normalizedIdentifier);
 
-    if (result.flagged) {
-      console.log(`🚨 VPA BLOCKED: ${normalizedIdentifier} - ${result.data.reason}`);
-      
-      // Store validation result for transaction logging
-      req.vpaStatus = {
-        checked: true,
-        flagged: true,
-        blacklistData: result.data
-      };
-
-      // Block the transaction
-      return res.status(403).json({
-        success: false,
-        blocked: true,
-        reason: 'BLACKLISTED_VPA',
-        message: `⚠️ Transaction Blocked: This recipient (${normalizedIdentifier}) has been flagged for ${result.data.reason}`,
-        details: {
-          vpa: result.data.vpa,
-          risk_level: result.data.risk_level,
-          reason: result.data.reason,
-          confidence_score: result.data.confidence_score,
-          reported_at: result.data.reported_at
-        },
-        recommendation: 'Please verify the recipient details. If you believe this is a mistake, contact support.'
-      });
-    }
-
-    // Step 3: VPA is safe
     console.log(`✅ VPA is safe: ${normalizedIdentifier}`);
     req.vpaStatus = {
       checked: true,
@@ -110,8 +123,33 @@ const checkVPAStatus = async (req, res, next) => {
     const identifier = vpa || phoneNumber;
     const normalizedIdentifier = identifier.toLowerCase().trim();
 
+    // Check global blacklist first
+    const blacklistResult = await VPACacheService.checkVPA(normalizedIdentifier);
+
+    if (blacklistResult.flagged) {
+      return res.json({
+        success: true,
+        safe: false,
+        blacklisted: true,
+        data: blacklistResult.data,
+        message: `Warning: Recipient flagged for ${blacklistResult.data.reason}`
+      });
+    }
+
     // Check whitelist
-    const isWhitelisted = await BlacklistWhitelist.isWhitelisted(normalizedIdentifier);
+    const isWhitelisted = await BlacklistWhitelist.findOne({
+      type: 'whitelist',
+      $or: [
+        { vpa: normalizedIdentifier },
+        { phoneNumber: normalizedIdentifier },
+        { accountNumber: normalizedIdentifier }
+      ],
+      isActive: true,
+      $or: [
+        { expiresAt: null },
+        { expiresAt: { $gt: new Date() } }
+      ]
+    });
 
     if (isWhitelisted) {
       return res.json({
@@ -122,18 +160,7 @@ const checkVPAStatus = async (req, res, next) => {
       });
     }
 
-    // Check blacklist
-    const result = await VPACacheService.checkVPA(normalizedIdentifier);
 
-    if (result.flagged) {
-      return res.json({
-        success: true,
-        safe: false,
-        blacklisted: true,
-        data: result.data,
-        message: `Warning: Recipient flagged for ${result.data.reason}`
-      });
-    }
 
     return res.json({
       success: true,

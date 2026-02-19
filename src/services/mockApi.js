@@ -50,7 +50,12 @@ export async function analyzeTransaction(transactionData) {
     
     const result = await response.json();
     
+    // Return the result even if not successful (for blocked by user case)
     if (!result.success) {
+      // Don't throw for user-blocked case - return the error response
+      if (result.blockedByUser) {
+        return result;
+      }
       throw new Error(result.message || 'Analysis failed');
     }
     
@@ -60,6 +65,11 @@ export async function analyzeTransaction(transactionData) {
     
   } catch (error) {
     console.error('Transaction analysis error:', error);
+    
+    // Don't fallback to mock for auth/blocked errors
+    if (error.message?.includes('blocked') || error.message?.includes('Authentication')) {
+      throw error;
+    }
     
     // Fallback to mock analysis if backend is unavailable
     console.warn('Using fallback mock analysis due to backend error');

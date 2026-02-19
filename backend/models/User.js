@@ -249,7 +249,28 @@ const userSchema = new mongoose.Schema({
     type: [String],
     default: [],
     select: false // Don't include in queries by default for security
-  }
+  },
+
+  // Personal blocked VPAs (user-level blacklist)
+  blockedVPAs: [{
+    vpa: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    name: {
+      type: String,
+      default: ''
+    },
+    blockedAt: {
+      type: Date,
+      default: Date.now
+    },
+    reason: {
+      type: String,
+      default: 'User blocked'
+    }
+  }]
 }, {
   timestamps: true
 });

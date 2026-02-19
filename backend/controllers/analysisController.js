@@ -38,8 +38,20 @@ exports.analyzeTransaction = async (req, res) => {
       timestamp: timestamp || new Date()
     });
 
-    // Step 0: Get user's daily limit and today's spending
-    const user = await User.findById(userId).select('dailyTransactionLimit');
+    // Step 0: Check if user has personally blocked this VPA
+    const user = await User.findById(userId).select('dailyTransactionLimit blockedVPAs');
+    
+    if (user?.blockedVPAs?.some(b => b.vpa === finalRecipientVPA?.toLowerCase().trim())) {
+      console.log('🚫 BLOCKED: User has personally blocked this VPA:', finalRecipientVPA);
+      return res.status(403).json({
+        success: false,
+        message: 'You have blocked this VPA. Unblock it in your settings to proceed.',
+        blockedByUser: true,
+        vpa: finalRecipientVPA
+      });
+    }
+
+    // Step 0b: Get user's daily limit and today's spending
     let dailyLimitInfo = { limit: null, spentToday: 0, remaining: null };
     
     if (user && user.dailyTransactionLimit) {

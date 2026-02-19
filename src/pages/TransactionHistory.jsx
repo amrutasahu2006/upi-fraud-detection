@@ -13,6 +13,7 @@ export default function TransactionHistory() {
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, error: null, items: [], pagination: null });
   const [reportingId, setReportingId] = useState(null); // Track which item is being reported
+  const [blacklistReportingId, setBlacklistReportingId] = useState(null); // Track blacklist report
 
   useEffect(() => {
     if (authLoading) return;
@@ -40,7 +41,7 @@ export default function TransactionHistory() {
     fetchTx();
   }, [authLoading, isAuthenticated, token, navigate]);
 
-  // --- New Report Function ---
+  // --- Report to Circle Function ---
   const handleReportToCircle = async (e, tx) => {
     e.stopPropagation(); // Prevent card click
     const vpa = tx.recipientVPA || tx.payeeUpiId;
@@ -61,6 +62,57 @@ export default function TransactionHistory() {
       alert(t('transactions.reportFailure'));
     } finally {
       setReportingId(null);
+    }
+  };
+
+  // --- Block VPA Function (User-level with auto-escalation) ---
+  const handleBlockVPA = async (e, tx) => {
+    e.stopPropagation();
+    const vpa = tx.recipientVPA || tx.payeeUpiId;
+    const name = tx.payee || t('common.unknownPayee', 'Unknown Payee');
+
+    if (!vpa || vpa === 'unknown@bank') {
+      alert('Invalid VPA');
+      return;
+    }
+
+    const reason = window.prompt(
+      `Block ${vpa}?\n\nThis will prevent you from paying this VPA in the future.\n\nEnter reason (optional):`,
+      'Suspicious activity'
+    );
+    
+    // User cancelled
+    if (reason === null) return;
+
+    setBlacklistReportingId(tx._id);
+    try {
+      const res = await axios.post('http://localhost:5000/api/block-vpa', {
+        vpa: vpa,
+        name: name,
+        reason: reason || 'User blocked'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.data.success) {
+        const { blockCount, escalatedToGlobal } = res.data.data;
+        let message = `✅ ${vpa} blocked successfully!\n\n${blockCount} user(s) have blocked this VPA.`;
+        
+        if (escalatedToGlobal) {
+          message += `\n\n🚨 AUTO-ESCALATED to global blacklist!\nThis VPA is now blocked for ALL users.`;
+        } else if (blockCount >= 2) {
+          message += `\n\n⚠️ 1 more report needed to add to global blacklist.`;
+        }
+        
+        alert(message);
+      } else {
+        alert(`⚠️ ${res.data.message || 'Block failed'}`);
+      }
+    } catch (err) {
+      console.error('Block VPA error:', err);
+      alert(`❌ Failed to block: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setBlacklistReportingId(null);
     }
   };
 
@@ -132,14 +184,24 @@ export default function TransactionHistory() {
                           </div>
 
                           <div className="flex items-center gap-4">
-                            {/* --- New Report Button --- */}
+                            {/* --- Report to Circle Button --- */}
                             <button
                               onClick={(e) => handleReportToCircle(e, tx)}
                               disabled={reportingId === tx._id}
-                              className="hidden group-hover:flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                              className="hidden group-hover:flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-700 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               <AlertTriangle size={14} />
                               {reportingId === tx._id ? t('common.loading') : t('transactions.reportToCircle')}
+                            </button>
+
+                            {/* --- Block VPA Button --- */}
+                            <button
+                              onClick={(e) => handleBlockVPA(e, tx)}
+                              disabled={blacklistReportingId === tx._id}
+                              className="hidden group-hover:flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 bg-red-100 px-3 py-1.5 rounded-lg transition-colors border border-red-200"
+                            >
+                              <AlertTriangle size={14} />
+                              {blacklistReportingId === tx._id ? t('common.loading') : 'Block this VPA'}
                             </button>
 
                             <div className="text-right flex flex-col items-end gap-2">

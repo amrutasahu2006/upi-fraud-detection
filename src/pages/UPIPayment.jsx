@@ -107,8 +107,24 @@ function UPIPaymentClean() {
       
       startTransaction(transactionData);
 
-      // Step 2: Check VPA blacklist (optional, can be part of backend)
-      console.log('🔍 Checking VPA blacklist for:', upiId);
+      // Step 2a: Check if user has personally blocked this VPA
+      console.log('🔍 Checking user-blocked VPAs for:', upiId);
+      const token = localStorage.getItem('token');
+      const userBlockResponse = await fetch(`http://localhost:5000/api/block-vpa/check/${encodeURIComponent(upiId)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const userBlockData = await userBlockResponse.json();
+      
+      if (userBlockData.success && userBlockData.data.isBlockedByUser) {
+        setIsAnalyzing(false);
+        setIsProcessing(false);
+        updateTransaction({ status: 'blocked', riskScore: 100, isBlocked: true });
+        alert(`🚫 TRANSACTION BLOCKED\n\nYou have blocked this VPA. Unblock it in your settings to proceed.`);
+        return;
+      }
+
+      // Step 2b: Check VPA global blacklist
+      console.log('🔍 Checking global blacklist for:', upiId);
       const blacklistResponse = await fetch(`http://localhost:5000/api/blacklist/check?vpa=${encodeURIComponent(upiId)}`);
       const blacklistData = await blacklistResponse.json();
       
@@ -123,10 +139,31 @@ function UPIPaymentClean() {
 
       // Step 3: Send for analysis
       console.log("📤 Sending transaction for analysis:", transactionData);
-      const result = await analyzeTransaction(transactionData);
+      
+      let result;
+      try {
+        result = await analyzeTransaction(transactionData);
+      } catch (error) {
+        setIsAnalyzing(false);
+        setIsProcessing(false);
+        
+        // Check if it's a blocked by user error
+        if (error.message?.includes('blocked this VPA')) {
+          alert(`🚫 PAYMENT BLOCKED\n\n${error.message}`);
+        } else {
+          alert(`❌ Error: ${error.message}`);
+        }
+        return;
+      }
 
       setIsAnalyzing(false);
       setIsProcessing(false);
+
+      // Check if user has personally blocked this VPA
+      if (!result.success && result.blockedByUser) {
+        alert(`🚫 PAYMENT BLOCKED\n\n${result.message}`);
+        return;
+      }
 
       if (result.success) {
         console.log("💾 Setting analysis result in context:", result.data);

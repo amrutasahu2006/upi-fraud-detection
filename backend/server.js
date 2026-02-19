@@ -16,6 +16,7 @@ const alertRoutes = require('./routes/alertRoutes');
 const blacklistRoutes = require('./routes/blacklistRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const circleRoutes = require('./routes/circleRoutes');
+const blockVpaRoutes = require('./routes/blockVpaRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 // Import Redis connection
@@ -65,6 +66,9 @@ app.use('/api/blacklist', blacklistRoutes);
 
 // Feedback routes for auto-learning
 app.use('/api/feedback', feedbackRoutes);
+
+// Block VPA routes (user-level blocking with auto-escalation)
+app.use('/api/block-vpa', blockVpaRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
