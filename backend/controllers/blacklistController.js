@@ -36,7 +36,25 @@ const checkVPA = async (req, res) => {
       });
     }
 
-    // Step 2: Check blacklist via cache service
+    // Step 2: Check admin blacklist (BlacklistWhitelist model)
+    const adminBlacklisted = await BlacklistWhitelist.findOne({
+      vpa: normalizedVPA,
+      type: 'blacklist',
+      isActive: true
+    });
+
+    if (adminBlacklisted) {
+      return res.json({
+        success: true,
+        flagged: true,
+        vpa: normalizedVPA,
+        severity: adminBlacklisted.severity,
+        reason: adminBlacklisted.reason,
+        message: `⚠️ BLOCKED: This VPA is flagged (${adminBlacklisted.reason})`
+      });
+    }
+
+    // Step 3: Check fraud blacklist via cache service (BlacklistVPA model)
     const result = await VPACacheService.checkVPA(normalizedVPA);
 
     if (result.flagged) {
@@ -52,12 +70,13 @@ const checkVPA = async (req, res) => {
       });
     }
 
-    // Step 3: VPA is safe
+    // Step 4: VPA is unknown/not verified
     return res.json({
       success: true,
       flagged: false,
+      unknown: true,
       vpa: normalizedVPA,
-      message: 'VPA is safe to use'
+      message: 'Unknown user - Not verified. Use with caution or verify with the recipient directly.'
     });
 
   } catch (error) {

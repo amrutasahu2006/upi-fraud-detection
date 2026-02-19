@@ -129,7 +129,11 @@
     "securityScore": "Security Score",
     "enableTwoFactor": "Enable Two-Factor Authentication",
     "updatePassword": "Update your password regularly",
-    "reviewDevices": "Review connected devices"
+    "reviewDevices": "ଯୋଡାଯାଇଥିବା ଡିଭାଇସଗୁଡିକୁ ସମୀକ୍ଷା କରନ୍ତୁ",
+    "verifyRecipientTitle": "ଗ୍ରାହକଙ୍କ ପରିଚୟ ଯାଞ୍ଚ କରନ୍ତୁ",
+    "verifyRecipientDesc": "ଗ୍ରାହକଙ୍କ VPA ଲେଖି ଏହା ସୁରକ୍ଷିତ, ବିଶ୍ୱସନୀୟ କିମ୍ବା ଚିହ୍ନିତ କି ନୁହେଁ ଯାଞ୍ଚ କରନ୍ତୁ।",
+    "verifyAction": "ଯୋଗାଯୋଗ ଯାଞ୍ଚ କରନ୍ତୁ",
+    "verifyEnterVpa": "ଯାଞ୍ଚ ପାଇଁ ଦୟାକରି VPA ଲେଖନ୍ତୁ।"
   },
   "navigation": {
     "dashboard": "Dashboard",

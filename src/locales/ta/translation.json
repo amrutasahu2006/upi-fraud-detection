@@ -129,7 +129,11 @@
     "securityScore": "Security Score",
     "enableTwoFactor": "Enable Two-Factor Authentication",
     "updatePassword": "Update your password regularly",
-    "reviewDevices": "Review connected devices"
+    "reviewDevices": "இணைக்கப்பட்ட சாதனங்களை பரிசீலிக்கவும்",
+    "verifyRecipientTitle": "பெறுநரின் அடையாளத்தை சரிபார்க்கவும்",
+    "verifyRecipientDesc": "பெறுநரின் VPA ஐ உள்ளிட்டு அது பாதுகாப்பானதா, நம்பகமானதா அல்லது குறிக்கப்பட்டதா என்பதை சரிபார்க்கவும்.",
+    "verifyAction": "தொடர்பை சரிபார்க்கவும்",
+    "verifyEnterVpa": "சரிபார்க்க தயவுசெய்து VPA ஐ உள்ளிடவும்."
   },
   "navigation": {
     "dashboard": "Dashboard",

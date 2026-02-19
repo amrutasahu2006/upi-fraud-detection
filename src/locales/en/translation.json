@@ -25,7 +25,8 @@
     "unknownPayee": "Unknown Payee",
     "secureEncrypted": "Secure & Encrypted",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "refresh": "Refresh"
   },
   "auth": {
     "login": "Login",
@@ -128,7 +129,11 @@
     "securityScore": "Security Score",
     "enableTwoFactor": "Enable Two-Factor Authentication",
     "updatePassword": "Update your password regularly",
-    "reviewDevices": "Review connected devices"
+    "reviewDevices": "Review connected devices",
+    "verifyRecipientTitle": "Verify Recipient Identity",
+    "verifyRecipientDesc": "Enter the recipient VPA to check if it is safe, whitelisted, or flagged.",
+    "verifyAction": "Verify Contact",
+    "verifyEnterVpa": "Please enter a VPA to verify."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -488,6 +493,25 @@
     "severity": "Severity",
     "blacklistEntries": "Blacklist Entries",
     "noBlacklist": "No blacklist entries yet",
+    "whitelist": "Whitelist",
+    "addWhitelist": "Add to Whitelist",
+    "whitelistEntries": "Whitelist Entries",
+    "noWhitelist": "No whitelist entries yet",
+    "whitelistAddSuccess": "Added to whitelist successfully!",
+    "whitelistAddFailed": "Failed to add to whitelist",
+    "whitelistRemoveSuccess": "Removed from whitelist",
+    "whitelistLoadFailed": "Failed to load whitelist",
+    "whitelistOverride": "Admin Override: Force Whitelist",
+    "whitelistOverrideWarning": "This VPA is on the global blacklist. By checking this, you are confirming it is safe and should be trusted.",
+    "cannotWhitelistBlacklisted": "Cannot whitelist: recipient is globally blacklisted",
+    "fraudBlacklist": "Fraud Blacklist",
+    "fraudBlacklistDesc": "VPAs reported by users or community as fraudulent. This list is managed by the system based on user reports and fraud indicators.",
+    "fraudBlacklistReadOnly": "This is a read-only view. Community-reported entries cannot be manually edited.",
+    "fraudBlacklistFailed": "Failed to load fraud blacklist",
+    "reportedVPAs": "Reported VPAs",
+    "noFraudBlacklist": "No fraudulent VPAs in the list",
+    "fraudType": "Fraud Type",
+    "risk": "Risk",
     "fetchUsersFailed": "Failed to fetch users",
     "updateStatusFailed": "Failed to update user status",
     "updateRoleFailed": "Failed to update user role",
@@ -597,5 +621,58 @@
     "amountAutoApproved": "Amount is below 1000 rupees - automatically approved",
     "scoreAutoApproved": "Risk score below 30 - automatically approved",
     "noSignificantFactors": "No significant risk factors detected"
+  },
+  "fraudForecast": {
+    "title": "Fraud Risk Forecast",
+    "next7Days": "Next 7 days prediction",
+    "unableToLoad": "Unable to load forecast",
+    "dailyBreakdown": "Daily Breakdown",
+    "contributingFactors": "Contributing Factors",
+    "recommendedActions": "Recommended Actions",
+    "thisWeek": "this week",
+    "riskLevels": {
+      "critical": "CRITICAL RISK",
+      "high": "HIGH RISK",
+      "medium": "MEDIUM RISK",
+      "low": "LOW RISK"
+    },
+    "messageCritical": "You're {{score}}% likely to be targeted by fraud this week. {{count}} high-risk days detected.",
+    "messageHigh": "You're {{score}}% likely to be targeted. Stay cautious on {{days}}.",
+    "messageMedium": "Moderate risk ({{score}}%). Some unusual patterns detected in your transactions.",
+    "messageLow": "Low risk ({{score}}%). Your transaction patterns look safe.",
+    "factors": {
+      "transactionVelocity": "Transaction Velocity",
+      "amountAnomaly": "Amount Anomaly",
+      "timePatternAnomaly": "Time Pattern Anomaly",
+      "newPayeeRatio": "New Payee Ratio",
+      "weekendFactor": "Weekend Factor",
+      "recentFraudReports": "Recent Fraud Reports"
+    },
+    "tips": {
+      "critical": {
+        "1": "Avoid high-value transfers this week",
+        "2": "Double-check all recipient details before paying",
+        "3": "Enable 2FA and transaction alerts immediately",
+        "4": "Use trusted payees only"
+      },
+      "high": {
+        "1": "Double-check recipient details",
+        "2": "Use trusted payees only",
+        "3": "Set transaction limits",
+        "4": "Enable payment notifications"
+      },
+      "medium": {
+        "1": "Review your recent transactions",
+        "2": "Be cautious with new recipients",
+        "3": "Avoid late-night high-value transfers",
+        "4": "Keep app and device security updated"
+      },
+      "low": {
+        "1": "Continue following secure payment habits",
+        "2": "Verify recipient before large transfers",
+        "3": "Monitor account activity regularly",
+        "4": "Report suspicious requests immediately"
+      }
+    }
   }
 }

@@ -163,7 +163,7 @@ router.get('/whitelist', protect, async (req, res) => {
 // Add to whitelist (trusted payees)
 router.post('/whitelist', protect, async (req, res) => {
   try {
-    const { vpa, phoneNumber, reason } = req.body;
+    const { vpa, phoneNumber, reason, override } = req.body;
 
     if (!vpa && !phoneNumber) {
       return res.status(400).json({
@@ -195,12 +195,26 @@ router.post('/whitelist', protect, async (req, res) => {
       isActive: true
     });
 
-    if (blacklisted) {
+    // Only admins can override blacklist
+    if (blacklisted && !override) {
       return res.status(400).json({
         success: false,
         message: 'Cannot whitelist: recipient is globally blacklisted',
-        blacklistReason: blacklisted.reason
+        blacklistReason: blacklisted.reason,
+        isBlacklisted: true,
+        canOverride: req.user.role === 'admin'
       });
+    }
+
+    // Admin override check
+    if (blacklisted && override) {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Only admins can override blacklist'
+        });
+      }
+      console.log(`⚠️ ADMIN OVERRIDE: ${req.user.name} is whitelisting blacklisted VPA: ${vpa || phoneNumber}`);
     }
 
     const whitelistEntry = new BlacklistWhitelist({
@@ -210,7 +224,11 @@ router.post('/whitelist', protect, async (req, res) => {
       reason: reason || 'Trusted payee',
       severity: 'low',
       reportedBy: req.user._id,
-      reportedByName: req.user.name
+      reportedByName: req.user.name,
+      metadata: {
+        overrideBlacklist: override && blacklisted ? true : false,
+        notes: override && blacklisted ? `Admin override - Original blacklist reason: ${blacklisted.reason}` : null
+      }
     });
 
     await whitelistEntry.save();
@@ -218,7 +236,8 @@ router.post('/whitelist', protect, async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Added to whitelist successfully',
-      data: whitelistEntry
+      data: whitelistEntry,
+      wasOverride: override && blacklisted ? true : false
     });
   } catch (error) {
     console.error('Error adding to whitelist:', error);

@@ -18,8 +18,12 @@ function SecurityRecommendations() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyVpa, setVerifyVpa] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResult, setVerifyResult] = useState(null);
 
-  const riskFactors = ["newPayee", "highAmount", "newDevice", "enable2FA"];
+  const riskFactors = ["newPayee"];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -162,7 +166,57 @@ function SecurityRecommendations() {
   };
 
   const handleRecommendationAction = (recommendation) => {
+    if (recommendation?.key === 'newPayee') {
+      setVerifyResult(null);
+      setVerifyVpa('');
+      setShowVerifyModal(true);
+      return;
+    }
+
+    if (recommendation?.key === 'newDevice') {
+      navigate('/connected-devices');
+      return;
+    }
+
+    if (recommendation?.key === 'enable2FA') {
+      navigate('/setup-2fa');
+      return;
+    }
+
+    if (recommendation?.key === 'highAmount') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setMessage({ type: 'success', text: `✅ ${t('security.dailyLimitDescription')}` });
+      setTimeout(() => setMessage({ type: '', text: '' }), 2500);
+      return;
+    }
+
     console.log(`Action clicked: ${recommendation.action}`, recommendation);
+  };
+
+  const handleVerifyRecipient = async () => {
+    if (!verifyVpa.trim()) {
+      setVerifyResult({
+        success: false,
+        message: t('security.verifyEnterVpa', 'Please enter a VPA to verify.'),
+      });
+      return;
+    }
+
+    setVerifyLoading(true);
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/blacklist/check?vpa=${encodeURIComponent(verifyVpa.trim())}`
+      );
+      const data = await response.json();
+      setVerifyResult(data);
+    } catch (error) {
+      setVerifyResult({
+        success: false,
+        message: error?.message || t('common.error'),
+      });
+    } finally {
+      setVerifyLoading(false);
+    }
   };
 
   if (loading) {
@@ -332,21 +386,12 @@ function SecurityRecommendations() {
             </div>
           </div>
 
-          {/* Heading Section */}
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
-              {t('security.staySecureTitle')}
-            </h2>
-            <p className="text-gray-600 text-sm md:text-base leading-relaxed">
-              {t('security.staySecureDesc')}
-            </p>
-          </div>
-
           {/* AI Recommendation Panel */}
           <AIRecommendationPanel 
             riskFactors={riskFactors} 
-            maxRecommendations={4}
-            layout="grid"
+            maxRecommendations={1}
+            layout="list"
+            variant="feature"
             onAction={handleRecommendationAction}
           />
         </main>
@@ -360,6 +405,61 @@ function SecurityRecommendations() {
           onConfirm={handleDisable2FA}
           onCancel={() => setShowPasswordModal(false)}
         />
+      )}
+
+      {showVerifyModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {t('security.verifyRecipientTitle', 'Verify Recipient Identity')}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {t('security.verifyRecipientDesc', 'Enter the recipient VPA to check if it is safe, whitelisted, or flagged.')}
+            </p>
+
+            <input
+              type="text"
+              value={verifyVpa}
+              onChange={(e) => setVerifyVpa(e.target.value)}
+              placeholder={t('payment.upiIdPlaceholder')}
+              className="w-full border border-gray-300 rounded-lg px-4 py-3 mb-4"
+            />
+
+            {verifyResult && (
+              <div
+                className={`mb-4 p-3 rounded-lg text-sm border ${
+                  verifyResult.flagged
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : verifyResult.whitelisted
+                      ? 'bg-green-50 text-green-700 border-green-200'
+                      : verifyResult.unknown
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}
+              >
+                {verifyResult.message}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowVerifyModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleVerifyRecipient}
+                disabled={verifyLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {verifyLoading
+                  ? t('common.loading')
+                  : t('security.verifyAction', 'Verify Contact')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

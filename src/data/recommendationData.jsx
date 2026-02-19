@@ -1,5 +1,8 @@
 export const recommendations = {
   newPayee: {
+    titleKey: "security.verifyRecipientTitle",
+    descriptionKey: "security.verifyRecipientDesc",
+    actionKey: "security.verifyAction",
     title: "Verify Recipient Identity",
     description: "Confirm the receiver is genuine before sending money.",
     action: "Verify Contact",

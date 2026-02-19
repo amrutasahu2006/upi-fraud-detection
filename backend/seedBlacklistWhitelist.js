@@ -63,8 +63,39 @@ const blacklistedVPAs = [
     confidence_score: 98,
     report_count: 20,
     status: 'active'
+  },
+  {
+    vpa: 'rahul@bank',
+    risk_level: 'high',
+    reason: 'fraud',
+    confidence_score: 87,
+    report_count: 9,
+    fraud_type: 'Investment Scam',
+    description: 'Fraudulent investment scheme - promises high returns',
+    status: 'active'
+  },
+  {
+    vpa: 'john@paytm',
+    risk_level: 'medium',
+    reason: 'suspicious_activity',
+    confidence_score: 72,
+    report_count: 6,
+    fraud_type: 'Unknown Sender',
+    description: 'Suspicious transaction patterns detected',
+    status: 'active'
+  },
+  {
+    vpa: 'testabc@gpay',
+    risk_level: 'low',
+    reason: 'suspicious_activity',
+    confidence_score: 45,
+    report_count: 2,
+    fraud_type: 'Low Risk Activity',
+    description: 'Minimal fraud indicators - under monitoring',
+    status: 'under_review'
   }
 ];
+
 
 const whitelistedVPAs = [
   {

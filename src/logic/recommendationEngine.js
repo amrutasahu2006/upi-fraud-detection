@@ -11,7 +11,10 @@ export function generateRecommendations(riskFactors = [], maxRecommendations = 3
   const safeRiskFactors = Array.isArray(riskFactors) ? riskFactors : [];
   
   return safeRiskFactors
-    .map(factor => recommendations[factor])
+    .map(factor => {
+      const rec = recommendations[factor];
+      return rec ? { ...rec, key: factor } : null;
+    })
     .filter(Boolean) // Remove undefined entries
     .slice(0, maxRecommendations);
 }
