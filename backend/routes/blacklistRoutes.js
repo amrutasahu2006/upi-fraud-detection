@@ -50,9 +50,17 @@ router.get('/blacklist', protect, adminOnly, async (req, res) => {
 router.post('/blacklist', protect, adminOnly, async (req, res) => {
   try {
     const { vpa, phoneNumber, accountNumber, reason, severity, metadata } = req.body;
+    const normalizedVPA = vpa ? vpa.toLowerCase().trim() : undefined;
+    const normalizedPhone = phoneNumber ? String(phoneNumber).trim() : undefined;
+    const normalizedAccount = accountNumber ? String(accountNumber).trim() : undefined;
+    const identifierFilters = [];
+
+    if (normalizedVPA) identifierFilters.push({ vpa: normalizedVPA });
+    if (normalizedPhone) identifierFilters.push({ phoneNumber: normalizedPhone });
+    if (normalizedAccount) identifierFilters.push({ accountNumber: normalizedAccount });
 
     // Validate: at least one identifier required
-    if (!vpa && !phoneNumber && !accountNumber) {
+    if (identifierFilters.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'At least one identifier (VPA, phone, or account) is required'
@@ -62,11 +70,7 @@ router.post('/blacklist', protect, adminOnly, async (req, res) => {
     // Check if already blacklisted
     const existing = await BlacklistWhitelist.findOne({
       type: 'blacklist',
-      $or: [
-        { vpa },
-        { phoneNumber },
-        { accountNumber }
-      ],
+      $or: identifierFilters,
       isActive: true
     });
 
@@ -80,9 +84,9 @@ router.post('/blacklist', protect, adminOnly, async (req, res) => {
 
     const blacklistEntry = new BlacklistWhitelist({
       type: 'blacklist',
-      vpa,
-      phoneNumber,
-      accountNumber,
+      vpa: normalizedVPA,
+      phoneNumber: normalizedPhone,
+      accountNumber: normalizedAccount,
       reason,
       severity: severity || 'high',
       reportedBy: req.user._id,
@@ -139,12 +143,28 @@ router.delete('/blacklist/:id', protect, adminOnly, async (req, res) => {
 // Get all whitelist entries for current user
 router.get('/whitelist', protect, async (req, res) => {
   try {
-    // Users can only see their own whitelist
-    const whitelist = await BlacklistWhitelist.find({
-      type: 'whitelist',
-      reportedBy: req.user._id,
-      isActive: true
-    }).sort({ createdAt: -1 });
+    let query;
+
+    if (req.user.role === 'admin') {
+      // Admin panel should see all whitelist entries, including seeded global entries
+      query = {
+        type: 'whitelist',
+        isActive: true
+      };
+    } else {
+      // Regular users see their own entries + global seeded trusted entries
+      query = {
+        type: 'whitelist',
+        isActive: true,
+        $or: [
+          { reportedBy: req.user._id },
+          { 'metadata.global': true }
+        ]
+      };
+    }
+
+    const whitelist = await BlacklistWhitelist.find(query)
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -164,8 +184,14 @@ router.get('/whitelist', protect, async (req, res) => {
 router.post('/whitelist', protect, async (req, res) => {
   try {
     const { vpa, phoneNumber, reason, override } = req.body;
+    const normalizedVPA = vpa ? vpa.toLowerCase().trim() : undefined;
+    const normalizedPhone = phoneNumber ? String(phoneNumber).trim() : undefined;
+    const identifierFilters = [];
 
-    if (!vpa && !phoneNumber) {
+    if (normalizedVPA) identifierFilters.push({ vpa: normalizedVPA });
+    if (normalizedPhone) identifierFilters.push({ phoneNumber: normalizedPhone });
+
+    if (identifierFilters.length === 0) {
       return res.status(400).json({
         success: false,
         message: 'VPA or phone number is required'
@@ -176,7 +202,7 @@ router.post('/whitelist', protect, async (req, res) => {
     const existing = await BlacklistWhitelist.findOne({
       type: 'whitelist',
       reportedBy: req.user._id,
-      $or: [{ vpa }, { phoneNumber }],
+      $or: identifierFilters,
       isActive: true
     });
 
@@ -191,7 +217,7 @@ router.post('/whitelist', protect, async (req, res) => {
     // Check if on blacklist (global)
     const blacklisted = await BlacklistWhitelist.findOne({
       type: 'blacklist',
-      $or: [{ vpa }, { phoneNumber }],
+      $or: identifierFilters,
       isActive: true
     });
 
@@ -219,8 +245,8 @@ router.post('/whitelist', protect, async (req, res) => {
 
     const whitelistEntry = new BlacklistWhitelist({
       type: 'whitelist',
-      vpa,
-      phoneNumber,
+      vpa: normalizedVPA,
+      phoneNumber: normalizedPhone,
       reason: reason || 'Trusted payee',
       severity: 'low',
       reportedBy: req.user._id,

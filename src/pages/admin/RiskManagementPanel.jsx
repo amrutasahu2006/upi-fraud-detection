@@ -14,7 +14,6 @@ export default function RiskManagementPanel() {
   const [thresholds, setThresholds] = useState(null);
   const [blacklist, setBlacklist] = useState([]);
   const [whitelist, setWhitelist] = useState([]);
-  const [fraudBlacklist, setFraudBlacklist] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -47,8 +46,6 @@ export default function RiskManagementPanel() {
       fetchBlacklist();
     } else if (activeTab === 'whitelist') {
       fetchWhitelist();
-    } else if (activeTab === 'fraudBlacklist') {
-      fetchFraudBlacklist();
     }
   }, [activeTab]);
 
@@ -191,7 +188,7 @@ export default function RiskManagementPanel() {
   const addToWhitelist = async (e) => {
     e.preventDefault();
     if (!newWhitelistEntry.vpa || !newWhitelistEntry.reason) {
-      setWhitelistError('VPA and reason are required');
+      setWhitelistError(t('admin.vpaReasonRequired', 'VPA and reason are required'));
       return;
     }
 
@@ -242,46 +239,8 @@ export default function RiskManagementPanel() {
     }
   };
 
-  const fetchFraudBlacklist = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setMessage({ type: 'error', text: t('admin.authRequired', 'Authentication required. Please login first.') });
-        return;
-      }
-      
-      setLoading(true);
-      const response = await fetch('http://localhost:5000/api/blacklist/all', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('API Error:', response.status, errorData);
-        throw new Error(errorData.message || `API returned ${response.status}`);
-      }
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        setFraudBlacklist(result.data || []);
-        console.log('✅ Fraud blacklist loaded:', result.data?.length || 0, 'entries');
-        if (result.data?.length === 0) {
-          setMessage({ type: 'success', text: 'Fraud blacklist is empty' });
-        }
-      } else {
-        setMessage({ type: 'error', text: result.message || t('admin.fraudBlacklistFailed', 'Failed to load fraud blacklist') });
-      }
-    } catch (error) {
-      console.error('Error fetching fraud blacklist:', error);
-      setMessage({ type: 'error', text: `Error: ${error.message}` });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const removeFromWhitelist = async (id) => {
-    if (!window.confirm('Remove from whitelist?')) return;
+    if (!window.confirm(t('admin.whitelistRemoveConfirm', 'Remove from whitelist?'))) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -375,17 +334,6 @@ export default function RiskManagementPanel() {
             >
               <CheckCircle className="inline-block w-5 h-5 mr-2" />
               {t('admin.whitelist', 'Whitelist')}
-            </button>
-            <button
-              onClick={() => setActiveTab('fraudBlacklist')}
-              className={`flex-1 py-4 px-6 font-semibold transition-all ${
-                activeTab === 'fraudBlacklist'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <AlertTriangle className="inline-block w-5 h-5 mr-2" />
-              {t('admin.fraudBlacklist', 'Fraud Blacklist')}
             </button>
           </div>
         </div>
@@ -617,7 +565,7 @@ export default function RiskManagementPanel() {
                     type="text"
                     value={newWhitelistEntry.vpa}
                     onChange={(e) => setNewWhitelistEntry({ ...newWhitelistEntry, vpa: e.target.value })}
-                    placeholder="trusted@bank"
+                    placeholder={t('admin.whitelistVpaPlaceholder', 'trusted@bank')}
                     required
                     className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
@@ -627,7 +575,7 @@ export default function RiskManagementPanel() {
                   <textarea
                     value={newWhitelistEntry.reason}
                     onChange={(e) => setNewWhitelistEntry({ ...newWhitelistEntry, reason: e.target.value })}
-                    placeholder="Trusted recipient - verified account..."
+                    placeholder={t('admin.whitelistReasonPlaceholder', 'Trusted recipient - verified account...')}
                     required
                     rows={3}
                     className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -644,8 +592,8 @@ export default function RiskManagementPanel() {
                         className="w-5 h-5 mt-1 border-gray-300 rounded focus:ring-2 focus:ring-green-500"
                       />
                       <div>
-                        <p className="font-semibold text-orange-900">Admin Override: Force Whitelist</p>
-                        <p className="text-sm text-orange-800 mt-1">This VPA is on the global blacklist. By checking this, you are confirming it is safe and should be trusted.</p>
+                        <p className="font-semibold text-orange-900">{t('admin.whitelistOverride', 'Admin Override: Force Whitelist')}</p>
+                        <p className="text-sm text-orange-800 mt-1">{t('admin.whitelistOverrideWarning', 'This VPA is on the global blacklist. By checking this, you are confirming it is safe and should be trusted.')}</p>
                       </div>
                     </label>
                   </div>
@@ -677,8 +625,8 @@ export default function RiskManagementPanel() {
                         <p className="font-bold text-gray-800">{entry.vpa || entry.phoneNumber}</p>
                         <p className="text-sm text-gray-600">{entry.reason}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                          <span className="px-2 py-1 rounded bg-green-200 text-green-800">Trusted</span>
-                          <span>Added: {new Date(entry.createdAt).toLocaleDateString()}</span>
+                          <span className="px-2 py-1 rounded bg-green-200 text-green-800">{t('admin.trusted', 'Trusted')}</span>
+                          <span>{t('admin.addedOn', 'Added')}: {new Date(entry.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                       <button
@@ -695,101 +643,7 @@ export default function RiskManagementPanel() {
           </div>
         )}
 
-        {/* Fraud Blacklist View */}
-        {activeTab === 'fraudBlacklist' && (
-          <div className="space-y-6">
-            {/* Fraud Blacklist Info */}
-            <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl shadow-lg p-8 border-2 border-red-200">
-              <div className="flex items-start gap-4">
-                <div className="mt-1">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold mb-2 text-gray-800">{t('admin.fraudBlacklist', 'Fraud Blacklist')}</h2>
-                  <p className="text-sm text-gray-700 mb-3">
-                    {t('admin.fraudBlacklistDesc', 'VPAs reported by users or community as fraudulent. This list is managed by the system based on user reports and fraud indicators.')}
-                  </p>
-                  <p className="text-xs text-gray-600 italic">
-                    ℹ️ {t('admin.fraudBlacklistReadOnly', 'This is a read-only view. Community-reported entries cannot be manually edited.')}
-                  </p>
-                </div>
-              </div>
-            </div>
 
-            {/* Fraud Blacklist Entries */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  {t('admin.reportedVPAs', 'Reported VPAs')} ({fraudBlacklist.length})
-                </h2>
-                <button
-                  onClick={fetchFraudBlacklist}
-                  disabled={loading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all text-sm font-semibold"
-                >
-                  {loading ? '🔄 ' + t('common.loading') : '🔄 ' + t('common.refresh', 'Refresh')}
-                </button>
-              </div>
-              
-              {fraudBlacklist.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">{t('admin.noFraudBlacklist', 'No fraudulent VPAs in the list')}</p>
-              ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {fraudBlacklist.map((entry) => (
-                    <div key={entry._id} className="p-4 bg-red-50 rounded-xl border border-red-200">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <p className="font-bold text-gray-800 text-lg">{entry.vpa}</p>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              entry.status === 'confirmed' ? 'bg-red-600 text-white' :
-                              entry.status === 'suspected' ? 'bg-orange-600 text-white' :
-                              'bg-yellow-600 text-white'
-                            }`}>
-                              {entry.status ? entry.status.charAt(0).toUpperCase() + entry.status.slice(1) : 'Unknown'}
-                            </span>
-                            {entry.risk_level && (
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                entry.risk_level === 'critical' ? 'bg-red-600 text-white' :
-                                entry.risk_level === 'high' ? 'bg-orange-600 text-white' :
-                                entry.risk_level === 'medium' ? 'bg-yellow-600 text-white' :
-                                'bg-gray-600 text-white'
-                              }`}>
-                                {t('admin.risk', 'Risk')}: {entry.risk_level?.toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {entry.fraud_type && (
-                            <p className="text-sm text-gray-700 mt-2 font-semibold">{t('admin.fraudType', 'Fraud Type')}: {entry.fraud_type}</p>
-                          )}
-                          
-                          {entry.description && (
-                            <p className="text-sm text-gray-600 mt-2">{entry.description}</p>
-                          )}
-                          
-                          <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-600">
-                            {entry.report_count && (
-                              <span className="px-2 py-1 bg-gray-200 rounded">📊 Reports: {entry.report_count}</span>
-                            )}
-                            {entry.confidence_score && (
-                              <span className="px-2 py-1 bg-gray-200 rounded">
-                                🎯 Confidence: {(entry.confidence_score * 100).toFixed(0)}%
-                              </span>
-                            )}
-                            {entry.createdAt && (
-                              <span className="px-2 py-1 bg-gray-200 rounded">📅 {new Date(entry.createdAt).toLocaleDateString()}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -191,6 +191,21 @@ const whitelistedVPAs = [
   }
 ];
 
+const globalBlacklistEntries = blacklistedVPAs.map((entry) => ({
+  identifier: entry.vpa,
+  type: 'blacklist',
+  vpa: entry.vpa,
+  reason: entry.description || `Seeded fraud entry (${entry.reason})`,
+  severity: entry.risk_level === 'high' ? 'high' : 'medium',
+  isActive: true,
+  metadata: {
+    global: true,
+    identifier: entry.vpa,
+    notes: `Seeded from fraud blacklist (${entry.reason})`,
+    source: 'seedBlacklistWhitelist'
+  }
+}));
+
 const seedBlacklistWhitelist = async () => {
   try {
     // Connect to MongoDB (use same connection as server)
@@ -207,6 +222,10 @@ const seedBlacklistWhitelist = async () => {
     const blacklistedResult = await BlacklistVPA.insertMany(blacklistedVPAs);
     console.log(`✅ Added ${blacklistedResult.length} blacklisted VPAs`);
 
+    // Seed global admin blacklist entries (for Admin Blacklist tab)
+    const globalBlacklistResult = await BlacklistWhitelist.insertMany(globalBlacklistEntries);
+    console.log(`✅ Added ${globalBlacklistResult.length} global blacklist entries`);
+
     // Seed whitelisted VPAs
     const whitelistedResult = await BlacklistWhitelist.insertMany(whitelistedVPAs);
     console.log(`✅ Added ${whitelistedResult.length} whitelisted VPAs`);
@@ -216,6 +235,11 @@ const seedBlacklistWhitelist = async () => {
     console.log('BLACKLISTED VPAs:');
     blacklistedResult.forEach(vpa => {
       console.log(`  🚫 ${vpa.vpa} - ${vpa.risk_level} risk (${vpa.reason})`);
+    });
+
+    console.log('\nGLOBAL BLACKLIST ENTRIES (Admin List):');
+    globalBlacklistResult.forEach(vpa => {
+      console.log(`  🚫 ${vpa.vpa} - ${vpa.severity} severity`);
     });
     
     console.log('\nWHITELISTED VPAs:');
