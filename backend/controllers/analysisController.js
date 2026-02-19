@@ -143,19 +143,95 @@ exports.analyzeTransaction = async (req, res) => {
     });
 
     // Step 6: Send notifications based on decision
+    // Step 6: Send notifications based on decision
+    // Step 6: Send notifications based on decision
     if (['BLOCK', 'DELAY', 'WARN'].includes(decision.action)) {
       const user = await User.findById(userId);
+      
       if (user) {
-        const alertMessage = DecisionEngine.generateAlertMessage(decision, {
-          amount,
-          recipientVPA: finalRecipientVPA
-        });
-        await NotificationService.sendFraudAlert(user, {
-          amount,
-          riskScore: riskAnalysis.totalScore,
-          action: decision.action,
-          message: alertMessage
-        });
+        // --- PART A: NOTIFY THE CURRENT USER ---
+        const phone = user.phoneNumber || (user.profile && user.profile.phoneNumber);
+        let isCircleThreat = false;
+        
+        if (Array.isArray(riskAnalysis.riskFactors)) {
+          isCircleThreat = riskAnalysis.riskFactors.some(factor => String(factor).toLowerCase().includes('circle'));
+        } else if (riskAnalysis.riskFactors) {
+          isCircleThreat = JSON.stringify(riskAnalysis.riskFactors).toLowerCase().includes('circle');
+        }
+
+        if (isCircleThreat && phone) {
+          console.log('🛡️ Circle Threat Detected! Finding exactly who reported it...');
+          
+          let reporterName = "A trusted circle member"; // Default fallback
+
+          // EXACT NAME LOOKUP LOGIC:
+          if (user.circleFraudReports && user.circleFraudReports.length > 0) {
+            // Find the exact report that matches the scammer's UPI ID
+            const specificReport = user.circleFraudReports.find(
+              report => report.payeeUpiId === finalRecipientVPA
+            );
+
+            if (specificReport && specificReport.reportedBy) {
+              // Look up the friend's actual name using their ID
+              const friend = await User.findById(specificReport.reportedBy).select('username');
+              if (friend && friend.username) {
+                reporterName = friend.username; 
+              }
+            }
+          }
+
+          // Send the highly personalized SMS
+          await NotificationService.sendSMS(
+            phone,
+            `🛡️ SURAKSHAPAY ALERT: ${reporterName} has reported ${finalRecipientName || finalRecipientVPA} as fraud. We blocked this transaction for your safety.`
+          );
+        } else if (phone) {
+          console.log('📱 Sending standard Twilio Fraud SMS to user...');
+          const alertMessage = DecisionEngine.generateAlertMessage(decision, { amount, recipientVPA: finalRecipientVPA });
+          await NotificationService.sendFraudAlert(user, {
+            amount, riskScore: riskAnalysis.totalScore, action: decision.action, message: alertMessage
+          });
+        }
+
+        // --- PART B: FAN OUT ALERT TO THEIR CIRCLE ---
+        if (decision.action === 'BLOCK') {
+          console.log(`📣 High Risk! Auto-warning circle members about ${finalRecipientVPA}`);
+          
+          const usersToWarn = await User.find({ trustedCircle: user._id });
+
+          if (usersToWarn.length > 0) {
+            const reportEntry = {
+              payeeUpiId: finalRecipientVPA,
+              payeeName: finalRecipientName || 'Unknown',
+              reportedBy: user._id,
+              timestamp: new Date()
+            };
+
+            const updatePromises = usersToWarn.map(async (circleMember) => {
+              await User.findByIdAndUpdate(circleMember._id, {
+                $push: { circleFraudReports: reportEntry }
+              });
+
+              if (circleMember.fcmToken && typeof NotificationService.sendCircleThreatAlert === 'function') {
+                await NotificationService.sendCircleThreatAlert(
+                  circleMember.fcmToken, 
+                  user.username || "A Trusted Member", 
+                  finalRecipientName || finalRecipientVPA
+                );
+              }
+
+              if (circleMember.phoneNumber) {
+                await NotificationService.sendSMS(
+                  circleMember.phoneNumber,
+                  `🛡️ SURAKSHAPAY AUTO-ALERT: Your circle member ${user.username || "a friend"} just encountered a severe fraudster (${finalRecipientVPA}). We have auto-blocked this payee for you.`
+                );
+              }
+            });
+
+            await Promise.all(updatePromises);
+            console.log(`✅ Circle auto-protect complete. Warned ${usersToWarn.length} users.`);
+          }
+        }
       }
     }
 
