@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import FilterPill from "../components/FilterPill";
 import StatCard from "../components/StatCard";
 import RecentFraudItem from "../components/RecentFraudItem";
@@ -6,6 +7,7 @@ import FraudHeatmap from "../components/FraudHeatmap";
 import FraudForecastWidget from "../components/FraudForecastWidget";
 
 export default function FraudAnalytics() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalFraudAttempts: 0,
     blockedTransactions: 0,
@@ -14,7 +16,7 @@ export default function FraudAnalytics() {
   });
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDateRange, setSelectedDateRange] = useState("Last 30 days");
+  const [selectedDateRange, setSelectedDateRange] = useState("last30Days");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -23,9 +25,9 @@ export default function FraudAnalytics() {
 
         // Build query parameters based on filters
         const daysMap = {
-          "Last 7 days": 7,
-          "Last 30 days": 30,
-          "Last 90 days": 90
+          last7Days: 7,
+          last30Days: 30,
+          last90Days: 90
         };
 
         const days = daysMap[selectedDateRange] || 30;
@@ -65,7 +67,7 @@ export default function FraudAnalytics() {
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <button className="text-3xl md:text-4xl lg:text-5xl cursor-pointer">←</button>
           <h1 className="text-lg md:text-xl lg:text-2xl font-semibold">
-            Fraud Analytics
+            {t('fraudAnalytics.title')}
           </h1>
         </header>
 
@@ -74,12 +76,22 @@ export default function FraudAnalytics() {
 
           {/* Filters */}
           <div className="space-y-2">
-            <p className="text-xs md:text-sm font-semibold text-gray-700">Filters</p>
+            <p className="text-xs md:text-sm font-semibold text-gray-700">{t('fraudAnalytics.filters')}</p>
             <div className="flex gap-2 flex-wrap">
               <FilterPill
-                label="Date range: Last 30 days"
-                active={selectedDateRange === "Last 30 days"}
-                onClick={() => setSelectedDateRange("Last 30 days")}
+                label={`${t('fraudAnalytics.dateRange')}: ${t('fraudAnalytics.last30Days')}`}
+                active={selectedDateRange === "last30Days"}
+                onClick={() => setSelectedDateRange("last30Days")}
+              />
+              <FilterPill
+                label={`${t('fraudAnalytics.dateRange')}: ${t('fraudAnalytics.last7Days')}`}
+                active={selectedDateRange === "last7Days"}
+                onClick={() => setSelectedDateRange("last7Days")}
+              />
+              <FilterPill
+                label={`${t('fraudAnalytics.dateRange')}: ${t('fraudAnalytics.last90Days')}`}
+                active={selectedDateRange === "last90Days"}
+                onClick={() => setSelectedDateRange("last90Days")}
               />
             </div>
           </div>
@@ -90,25 +102,25 @@ export default function FraudAnalytics() {
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard
-              title="Total Fraud Attempts"
+              title={t('fraudAnalytics.totalFraudAttempts')}
               value={stats.totalFraudAttempts?.toLocaleString() || "0"}
               change="+5.2%"
               positive
             />
             <StatCard
-              title="Blocked Transactions"
+              title={t('fraudAnalytics.blockedTransactions')}
               value={stats.blockedTransactions?.toLocaleString() || "0"}
               change="+8.1%"
               positive
             />
             <StatCard
-              title="Success Rate (Blocking)"
+              title={t('fraudAnalytics.successRate')}
               value={`${stats.successRate || 0}%`}
               change="+1.5%"
               positive
             />
             <StatCard
-              title="Average Risk Score"
+              title={t('fraudAnalytics.avgRiskScore')}
               value={stats.avgRiskScore?.toString() || "0"}
               change="-0.3%"
               positive={false}
@@ -118,10 +130,10 @@ export default function FraudAnalytics() {
           {/* Map Section */}
           <div className="bg-white border rounded-lg p-3 md:p-4 space-y-2">
             <p className="text-sm md:text-base font-semibold text-gray-800">
-              Fraud Hotspots in India
+              {t('fraudAnalytics.fraudHotspots')}
             </p>
             <p className="text-xs md:text-sm text-gray-500">
-              Regions with highest reported UPI fraud activity.
+              {t('fraudAnalytics.fraudHotspotsDesc')}
             </p>
 
             <FraudHeatmap selectedDateRange={selectedDateRange} />
@@ -130,11 +142,11 @@ export default function FraudAnalytics() {
           {/* Recent Fraud Activity */}
           <div className="bg-white border rounded-lg p-3 md:p-4 space-y-2">
             <p className="text-sm md:text-base font-semibold text-gray-800">
-              Recent Fraud Activity
+              {t('fraudAnalytics.recentFraudActivity')}
             </p>
 
             {loading ? (
-              <div className="text-center py-4">Loading...</div>
+              <div className="text-center py-4">{t('common.loading')}</div>
             ) : recentActivity.length > 0 ? (
               recentActivity.map((item, index) => (
                 <RecentFraudItem
@@ -146,7 +158,7 @@ export default function FraudAnalytics() {
                 />
               ))
             ) : (
-              <div className="text-center py-4 text-gray-500">No recent fraud activity</div>
+              <div className="text-center py-4 text-gray-500">{t('fraudAnalytics.noActivityYet')}</div>
             )}
           </div>
 

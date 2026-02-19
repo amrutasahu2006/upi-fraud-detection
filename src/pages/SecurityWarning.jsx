@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, X, MessageCircle, ShieldAlert, CheckCircle } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 import { useAuth } from "../context/AuthContext";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
 import { submitNotFraudFeedback } from "../services/mockApi";
+import { translateBackendReasons } from "../utils/translateBackendReason";
 
 const SecurityWarning = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { token } = useAuth();
   const { currentTransaction, riskAnalysis, updateTransaction } = useTransaction();
@@ -211,12 +214,13 @@ const SecurityWarning = () => {
   const recipientVPA = currentTransaction?.recipient?.upi || result?.recipientVPA || 'unknown@bank';
   const delayDuration = result?.metadata?.delayDuration || 300; // seconds
   const reasons = result?.detailedReasons || [];
+  const localizedReasons = translateBackendReasons(reasons, t);
 
   const handleBlock = () => {
     navigate('/blocked', {
       state: {
         transaction: currentTransaction,
-        reason: "Transaction blocked by user from warning screen.",
+        reason: t('securityWarning.blockedByUser', 'Transaction blocked by user from warning screen.'),
         riskScore: riskScore,
         decision: 'Blocked'
       }
@@ -245,10 +249,10 @@ const SecurityWarning = () => {
             
             <div className="space-y-2">
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
-                  Security Warning
+                  {t('securityWarning.title')}
                 </h2>
                 <div className="inline-flex items-center px-4 py-1.5 rounded-full bg-red-50 text-red-700 text-xs sm:text-sm font-semibold border border-red-100">
-                  High Fraud Risk Detected
+                  {t('securityWarning.riskDetected')}
                 </div>
             </div>
             
@@ -261,19 +265,19 @@ const SecurityWarning = () => {
           </div>
 
           {/* AI Insight Box - Show actual reasons */}
-          {reasons.length > 0 && (
+          {localizedReasons.length > 0 && (
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5">
               <div className="flex gap-4 items-start mb-3">
                 <div className="bg-blue-100 p-2 rounded-lg hidden sm:block">
                     <MessageCircle size={18} className="text-blue-600" />
                 </div>
                 <div className="flex-1">
-                  <span className="font-bold text-slate-800 block mb-1">AI Risk Analysis:</span>
+                  <span className="font-bold text-slate-800 block mb-1">{t('securityWarning.aiRecommendation')}:</span>
                   <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-2">
-                    Our system has identified the following risk factors:
+                    {t('securityWarning.riskFactors')}:
                   </p>
                   <ul className="text-xs sm:text-sm text-slate-600 space-y-1">
-                    {reasons.slice(0, 3).map((reason, index) => (
+                    {localizedReasons.slice(0, 3).map((reason, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <span className="text-red-500">•</span>
                         <span>{reason}</span>
@@ -290,23 +294,23 @@ const SecurityWarning = () => {
             
             <div className="text-left">
               <button onClick={() => navigate('/risk-details')} className="text-red-600 text-sm font-medium hover:underline cursor-pointer">
-                Explain why in detail
+                {t('transactions.viewDetails')}
               </button>
             </div>
             
             {/* Primary Action */}
             <button onClick={handleBlock} className="w-full bg-red-600 text-white py-3.5 sm:py-4 px-4 rounded-xl hover:bg-red-700 active:scale-[0.98] transition-all font-bold text-sm sm:text-base shadow-lg shadow-red-200 cursor-pointer">
-              Block & Report VPA
+              {t('securityWarning.blockTransaction')}
             </button>
 
             {/* Secondary Actions - Using Grid for Tablet/Desktop to save vertical space */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button onClick={() => navigate('/chatbot')} className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold cursor-pointer">
                     <MessageCircle size={18} />
-                    <span>Ask bot for help</span>
+                  <span>{t('securityWarning.talkToAI')}</span>
                 </button>
                 <button onClick={handleProceedAnyway} disabled={isSubmitting} className="w-full bg-transparent border border-transparent text-gray-400 py-3 px-4 rounded-xl hover:text-gray-600 hover:bg-gray-100 transition-colors text-sm font-medium cursor-pointer disabled:opacity-50">
-                    {isSubmitting ? 'Processing...' : 'Proceed Anyway'}
+                  {isSubmitting ? t('common.loading') : t('securityWarning.proceedAnyway')}
                 </button>
             </div>
           </div>
@@ -314,10 +318,10 @@ const SecurityWarning = () => {
           {/* AI Recommendations Section */}
           <div className="mt-6 sm:mt-8">
             <h3 className="font-bold text-lg text-slate-800 mb-3">
-              Immediate Actions Required
+              {t('securityWarning.whatToDo')}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Based on this high-risk transaction, take these critical security steps:
+              {t('securityWarning.reviewTransaction')}
             </p>
             
             <AIRecommendationPanel 
@@ -389,7 +393,7 @@ const SecurityWarning = () => {
               
               <div className="mt-3 flex items-start gap-2 text-xs text-gray-600">
                 <span className="mt-0.5">💡</span>
-                <p>Your limit will automatically reset at midnight</p>
+                <p>{t('securityWarning.limitResetTip', 'Your limit will automatically reset at midnight')}</p>
               </div>
             </div>
 
@@ -399,7 +403,7 @@ const SecurityWarning = () => {
                 onClick={() => navigate('/recommendations')}
                 className="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl hover:bg-blue-700 active:scale-[0.98] transition-all duration-150"
               >
-                Adjust Limit
+                {t('security.setLimits')}
               </button>
               <button
                 onClick={() => {
@@ -409,7 +413,7 @@ const SecurityWarning = () => {
                 }}
                 className="w-full bg-gray-900 text-white font-semibold py-3 px-4 rounded-xl hover:bg-gray-800 active:scale-[0.98] transition-all duration-150"
               >
-                Ignore Limit for Today
+                {t('securityWarning.proceedAnyway')}
               </button>
               <button
                 onClick={() => {
@@ -418,7 +422,7 @@ const SecurityWarning = () => {
                 }}
                 className="w-full bg-gray-100 text-gray-700 font-semibold py-3 px-4 rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all duration-150"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>

@@ -1,9 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import { Monitor, Smartphone, Laptop, Tablet, MapPin, Clock, Shield, Trash2 } from "lucide-react";
 
 function ConnectedDevices() {
+  const { t } = useTranslation();
   const { token, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
@@ -49,12 +51,12 @@ function ConnectedDevices() {
     const currentDeviceId = localStorage.getItem('deviceId');
     
     if (deviceId === currentDeviceId) {
-      setMessage({ type: 'error', text: '❌ Cannot remove current device' });
+      setMessage({ type: 'error', text: `❌ ${t('connectedDevices.cannotRemoveCurrent')}` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       return;
     }
 
-    if (!window.confirm('Are you sure you want to remove this device? You will need to log in again on that device.')) {
+    if (!window.confirm(t('connectedDevices.removeDeviceConfirm'))) {
       return;
     }
 
@@ -72,15 +74,15 @@ function ConnectedDevices() {
 
       if (data.success) {
         setDevices(devices.filter(d => d.deviceId !== deviceId));
-        setMessage({ type: 'success', text: '✅ Device removed successfully' });
+        setMessage({ type: 'success', text: `✅ ${t('connectedDevices.deviceRemoved')}` });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       } else {
-        setMessage({ type: 'error', text: `❌ ${data.message || 'Failed to remove device'}` });
+        setMessage({ type: 'error', text: `❌ ${data.message || t('connectedDevices.removeFailed')}` });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       }
     } catch (error) {
       console.error('Error removing device:', error);
-      setMessage({ type: 'error', text: '❌ Failed to remove device' });
+      setMessage({ type: 'error', text: `❌ ${t('connectedDevices.removeFailed')}` });
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } finally {
       setRemovingDevice(null);
@@ -88,7 +90,7 @@ function ConnectedDevices() {
   };
 
   const handleLogoutAllDevices = async () => {
-    if (!window.confirm('This will log you out of all devices including this one. You will need to log in again. Continue?')) {
+    if (!window.confirm(t('connectedDevices.logoutAllConfirm'))) {
       return;
     }
 
@@ -117,7 +119,7 @@ function ConnectedDevices() {
       logout();
       
       // Show message briefly before redirect
-      setMessage({ type: 'success', text: '✅ Logged out from all devices' });
+      setMessage({ type: 'success', text: `✅ ${t('connectedDevices.logoutAllSuccess')}` });
       
       // Redirect to login page after short delay
       setTimeout(() => {
@@ -146,16 +148,16 @@ function ConnectedDevices() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffMins < 1) return t('common.loading');
+    if (diffMins < 60) return `${diffMins} min`;
+    if (diffHours < 24) return `${diffHours} hr`;
+    return `${diffDays} d`;
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-slate-500">Loading devices...</div>
+        <div className="text-slate-500">{t('connectedDevices.loadingDevices')}</div>
       </div>
     );
   }
@@ -166,7 +168,7 @@ function ConnectedDevices() {
         {/* Page Header */}
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <Link to="/recommendations" className="text-2xl cursor-pointer">←</Link>
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Connected Devices</h1>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">{t('connectedDevices.title')}</h1>
         </header>
 
         {/* Main Content */}
@@ -182,10 +184,10 @@ function ConnectedDevices() {
           {/* Heading Section */}
           <div className="mb-8">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-              Your Connected Devices
+              {t('connectedDevices.devicesTitle')}
             </h2>
             <p className="text-gray-600 text-sm md:text-base leading-relaxed">
-              Review and manage all devices that have access to your account. Remove any unrecognized devices to keep your account secure.
+              {t('connectedDevices.devicesDescription')}
             </p>
           </div>
 
@@ -193,9 +195,9 @@ function ConnectedDevices() {
           <div className="mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
             <Shield className="text-blue-600 flex-shrink-0" size={20} />
             <div>
-              <h3 className="font-semibold text-blue-900 text-sm mb-1">Security Tip</h3>
+              <h3 className="font-semibold text-blue-900 text-sm mb-1">{t('connectedDevices.securityTip')}</h3>
               <p className="text-blue-800 text-xs leading-relaxed">
-                If you notice a device you don't recognize, remove it immediately and change your password.
+                {t('connectedDevices.securityTipText')}
               </p>
             </div>
           </div>
@@ -227,7 +229,7 @@ function ConnectedDevices() {
                           {device.name}
                           {device.isCurrent && (
                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
-                              Current Device
+                              {t('connectedDevices.currentDeviceTag')}
                             </span>
                           )}
                         </h3>
@@ -244,7 +246,7 @@ function ConnectedDevices() {
                           className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-semibold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Trash2 size={16} />
-                          {removingDevice === device.deviceId ? 'Removing...' : 'Remove'}
+                          {removingDevice === device.deviceId ? t('connectedDevices.removing') : t('connectedDevices.remove')}
                         </button>
                       )}
                     </div>
@@ -253,11 +255,11 @@ function ConnectedDevices() {
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 mt-3">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin size={16} className="flex-shrink-0" />
-                        <span>{device.location?.city || device.location?.country || 'Unknown Location'}</span>
+                        <span>{device.location?.city || device.location?.country || t('connectedDevices.unknownLocation')}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock size={16} className="flex-shrink-0" />
-                        <span>Last active: {getTimeAgo(device.lastActive)}</span>
+                        <span>{t('connectedDevices.lastActive')}: {getTimeAgo(device.lastActive)}</span>
                       </div>
                     </div>
                   </div>
@@ -270,22 +272,22 @@ function ConnectedDevices() {
           {devices.length === 0 && (
             <div className="text-center py-12">
               <Monitor size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500">No devices connected</p>
+              <p className="text-gray-500">{t('connectedDevices.noDevices')}</p>
             </div>
           )}
 
           {/* Additional Actions */}
           <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
-            <h3 className="font-bold text-gray-900 mb-2">Need more help?</h3>
+            <h3 className="font-bold text-gray-900 mb-2">{t('connectedDevices.needHelp')}</h3>
             <p className="text-sm text-gray-600 mb-4">
-              If you believe your account has been compromised, log out of all devices and change your password immediately.
+              {t('connectedDevices.needHelpText')}
             </p>
             <button
               onClick={handleLogoutAllDevices}
               disabled={loggingOutAll}
               className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loggingOutAll ? 'Logging Out...' : 'Log Out All Devices'}
+              {loggingOutAll ? t('connectedDevices.loggingOut') : t('connectedDevices.logoutAll')}
             </button>
           </div>
         </main>

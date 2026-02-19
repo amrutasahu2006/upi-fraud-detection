@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import i18n from '../i18n';
 
 const AuthContext = createContext();
 
@@ -39,6 +40,9 @@ export const AuthProvider = ({ children }) => {
         const data = await response.json();
         if (data.success) {
           setUser(data.user);
+          
+          // Load user's language preference
+          loadLanguagePreference(token);
         } else {
           logout();
         }
@@ -50,6 +54,26 @@ export const AuthProvider = ({ children }) => {
       logout();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLanguagePreference = async (token) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/language-preference', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.languagePreference) {
+          i18n.changeLanguage(data.data.languagePreference);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading language preference:', error);
     }
   };
 
@@ -94,6 +118,10 @@ export const AuthProvider = ({ children }) => {
         
         setToken(token);
         setUser(user);
+        
+        // Load user's language preference after login
+        loadLanguagePreference(token);
+        
         return { success: true, user };
       } else {
         return { success: false, message: data.message || 'Login failed' };

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 
 const UserManagementPage = () => {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,10 +30,10 @@ const UserManagementPage = () => {
         setUsers(data.data);
         setTotalPages(data.pagination.totalPages);
       } else {
-        setError(data.message || 'Failed to fetch users');
+        setError(data.message || t('admin.fetchUsersFailed', 'Failed to fetch users'));
       }
     } catch (err) {
-      setError('Network error occurred');
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -56,10 +58,10 @@ const UserManagementPage = () => {
       if (data.success) {
         fetchUsers(currentPage); // Refresh the user list
       } else {
-        alert(data.message || 'Failed to update user status');
+        alert(data.message || t('admin.updateStatusFailed', 'Failed to update user status'));
       }
     } catch (err) {
-      alert('Network error occurred');
+      alert(t('common.error'));
     }
   };
 
@@ -81,15 +83,15 @@ const UserManagementPage = () => {
         setShowEditModal(false);
         setRoleUpdate({ userId: '', role: '' });
       } else {
-        alert(data.message || 'Failed to update user role');
+        alert(data.message || t('admin.updateRoleFailed', 'Failed to update user role'));
       }
     } catch (err) {
-      alert('Network error occurred');
+      alert(t('common.error'));
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    if (!window.confirm(t('admin.deleteUserConfirm', 'Are you sure you want to delete this user? This action cannot be undone.'))) {
       return;
     }
 
@@ -107,10 +109,10 @@ const UserManagementPage = () => {
       if (data.success) {
         fetchUsers(currentPage); // Refresh the user list
       } else {
-        alert(data.message || 'Failed to delete user');
+        alert(data.message || t('admin.deleteUserFailed', 'Failed to delete user'));
       }
     } catch (err) {
-      alert('Network error occurred');
+      alert(t('common.error'));
     }
   };
 
@@ -127,9 +129,9 @@ const UserManagementPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('admin.userManagement')}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              Manage users, roles, and account statuses
+              {t('admin.userMgmtSubtitle', 'Manage users, roles, and account statuses')}
             </p>
           </div>
 
@@ -153,22 +155,22 @@ const UserManagementPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
+                    {t('auth.username')}
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    {t('auth.email')}
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                    {t('profile.role')}
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    {t('profile.status')}
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
+                    {t('transactions.date')}
                   </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t('admin.quickActions', 'Actions')}
                   </th>
                 </tr>
               </thead>
@@ -208,7 +210,7 @@ const UserManagementPage = () => {
                           ? 'bg-green-100 text-green-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {user.isActive ? 'Active' : 'Inactive'}
+                        {user.isActive ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -223,7 +225,7 @@ const UserManagementPage = () => {
                           }}
                           className="text-indigo-600 hover:text-indigo-900 mr-3"
                         >
-                          Edit Role
+                          {t('admin.editRole', 'Edit Role')}
                         </button>
                         <button
                           onClick={() => handleToggleStatus(user._id)}
@@ -231,13 +233,13 @@ const UserManagementPage = () => {
                             user.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'
                           } mr-3`}
                         >
-                          {user.isActive ? 'Deactivate' : 'Activate'}
+                          {user.isActive ? t('admin.deactivate', 'Deactivate') : t('admin.activate', 'Activate')}
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user._id)}
                           className="text-red-600 hover:text-red-900"
                         >
-                          Delete
+                          {t('common.delete')}
                         </button>
                       </div>
                     </td>
@@ -256,14 +258,14 @@ const UserManagementPage = () => {
                   disabled={currentPage === 1}
                   className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Previous
+                  {t('admin.previous', 'Previous')}
                 </button>
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                   className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Next
+                  {t('admin.next', 'Next')}
                 </button>
               </div>
               <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
@@ -326,11 +328,11 @@ const UserManagementPage = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Update User Role</h3>
+              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">{t('admin.updateRole', 'Update User Role')}</h3>
               
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Role
+                  {t('admin.selectRole', 'Select Role')}
                 </label>
                 <select
                   value={roleUpdate.role}
@@ -347,13 +349,13 @@ const UserManagementPage = () => {
                   onClick={() => setShowEditModal(false)}
                   className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleUpdateRole}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
-                  Update Role
+                  {t('admin.updateRole', 'Update User Role')}
                 </button>
               </div>
             </div>

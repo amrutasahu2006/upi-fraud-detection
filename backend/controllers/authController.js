@@ -648,6 +648,57 @@ const get2FAStatus = async (req, res) => {
   }
 };
 
+// @desc    Update user language preference
+// @route   POST /api/auth/language-preference
+// @access  Private
+const updateLanguagePreference = async (req, res) => {
+  try {
+    const { language } = req.body;
+
+    if (!language || !['en', 'hi'].includes(language)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid language. Supported: en, hi'
+      });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { languagePreference: language },
+      { new: true }
+    ).select('languagePreference');
+
+    res.json({
+      success: true,
+      data: {
+        languagePreference: user.languagePreference
+      }
+    });
+  } catch (error) {
+    console.error('Update language preference error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Get user language preference
+// @route   GET /api/auth/language-preference
+// @access  Private
+const getLanguagePreference = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('languagePreference');
+
+    res.json({
+      success: true,
+      data: {
+        languagePreference: user.languagePreference || 'en'
+      }
+    });
+  } catch (error) {
+    console.error('Get language preference error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -660,5 +711,7 @@ module.exports = {
   verify2FA,
   verify2FALogin,
   disable2FA,
-  get2FAStatus
+  get2FAStatus,
+  updateLanguagePreference,
+  getLanguagePreference
 };

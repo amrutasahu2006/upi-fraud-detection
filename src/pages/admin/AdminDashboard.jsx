@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import {
   Users,
@@ -39,6 +40,7 @@ ChartJS.register(
 );
 
 export default function AdminDashboard() {
+  const { t } = useTranslation();
   const { token } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,10 +64,10 @@ export default function AdminDashboard() {
         setLastUpdated(new Date());
         setError('');
       } else {
-        setError(data.message || 'Failed to fetch dashboard data');
+        setError(data.message || t('admin.fetchFailed', 'Failed to fetch dashboard data'));
       }
     } catch (err) {
-      setError('Network error occurred');
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -137,10 +139,10 @@ export default function AdminDashboard() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Admin Dashboard
+              {t('admin.dashboard')}
             </h1>
             <p className="mt-2 text-gray-600">
-              Real-time fraud detection and user management overview
+              {t('admin.overview', 'Real-time fraud detection and user management overview')}
             </p>
           </div>
           <button
@@ -149,7 +151,7 @@ export default function AdminDashboard() {
             disabled={loading}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('common.retry')}
           </button>
         </div>
 
@@ -170,6 +172,7 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
+                <p className="text-sm font-medium text-gray-600">{t('admin.totalUsers')}</p>
                 <p className="text-3xl font-bold text-gray-900">{dashboardData?.users?.total || 0}</p>
               </div>
               <Users className="h-8 w-8 text-blue-500" />
@@ -179,7 +182,7 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
+                <p className="text-sm font-medium text-gray-600">{t('admin.activeUsers')}</p>
                 <p className="text-3xl font-bold text-green-600">{dashboardData?.users?.active || 0}</p>
               </div>
               <UserCheck className="h-8 w-8 text-green-500" />
@@ -189,7 +192,7 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Transactions</p>
+                <p className="text-sm font-medium text-gray-600">{t('transactions.title')}</p>
                 <p className="text-3xl font-bold text-gray-900">{dashboardData?.transactions?.total || 0}</p>
               </div>
               <Activity className="h-8 w-8 text-purple-500" />
@@ -199,7 +202,7 @@ export default function AdminDashboard() {
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Blocked Transactions</p>
+                <p className="text-sm font-medium text-gray-600">{t('fraudAnalytics.blockedTransactions')}</p>
                 <p className="text-3xl font-bold text-red-600">{dashboardData?.transactions?.blocked || 0}</p>
               </div>
               <Shield className="h-8 w-8 text-red-500" />
@@ -212,7 +215,7 @@ export default function AdminDashboard() {
           {/* Fraud Trends Chart */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Fraud Trends (7 Days)</h3>
+              <h3 className="text-xl font-semibold text-gray-900">{t('admin.fraudTrends', 'Fraud Trends (7 Days)')}</h3>
               <TrendingUp className="h-5 w-5 text-gray-400" />
             </div>
             {fraudTrendData && (
@@ -244,7 +247,7 @@ export default function AdminDashboard() {
           {/* Risk Distribution Chart */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Risk Distribution (30 Days)</h3>
+              <h3 className="text-xl font-semibold text-gray-900">{t('admin.riskDistribution', 'Risk Distribution (30 Days)')}</h3>
               <BarChart3 className="h-5 w-5 text-gray-400" />
             </div>
             {riskDistributionData && (
@@ -267,14 +270,14 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Quick Actions */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">Quick Actions</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('admin.quickActions', 'Quick Actions')}</h3>
             <div className="space-y-4">
               <Link
                 to="/admin/users"
                 className="flex items-center p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group"
               >
                 <Users className="h-5 w-5 text-blue-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-blue-700 font-medium">Manage Users</span>
+                <span className="text-blue-700 font-medium">{t('admin.userManagement')}</span>
               </Link>
 
               <Link
@@ -282,7 +285,7 @@ export default function AdminDashboard() {
                 className="flex items-center p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
               >
                 <BarChart3 className="h-5 w-5 text-green-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-green-700 font-medium">View Analytics</span>
+                <span className="text-green-700 font-medium">{t('navigation.analytics')}</span>
               </Link>
 
               <Link
@@ -290,27 +293,27 @@ export default function AdminDashboard() {
                 className="flex items-center p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors group"
               >
                 <Shield className="h-5 w-5 text-red-600 mr-3 group-hover:scale-110 transition-transform" />
-                <span className="text-red-700 font-medium">Risk Management</span>
+                <span className="text-red-700 font-medium">{t('admin.riskManagement')}</span>
               </Link>
             </div>
           </div>
 
           {/* User Statistics */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">User Statistics</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('admin.userStats', 'User Statistics')}</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Administrators</span>
+                <span className="text-gray-600">{t('admin.admins', 'Administrators')}</span>
                 <span className="font-semibold text-blue-600">{dashboardData?.users?.admins || 0}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Inactive Users</span>
+                <span className="text-gray-600">{t('admin.inactiveUsers', 'Inactive Users')}</span>
                 <span className="font-semibold text-red-600">
                   {(dashboardData?.users?.total || 0) - (dashboardData?.users?.active || 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">New Users (7d)</span>
+                <span className="text-gray-600">{t('admin.newUsers', 'New Users (7d)')}</span>
                 <span className="font-semibold text-green-600">{dashboardData?.users?.recent || 0}</span>
               </div>
             </div>
@@ -318,26 +321,26 @@ export default function AdminDashboard() {
 
           {/* System Status */}
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6">System Status</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('admin.systemHealth')}</h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 flex items-center">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                  System Health
+                  {t('admin.systemHealth')}
                 </span>
-                <span className="font-semibold text-green-600">Online</span>
+                <span className="font-semibold text-green-600">{t('admin.online', 'Online')}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 flex items-center">
                   <Clock className="h-4 w-4 mr-2" />
-                  Last Updated
+                  {t('admin.lastUpdated', 'Last Updated')}
                 </span>
                 <span className="font-semibold text-gray-900">
-                  {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Never'}
+                  {lastUpdated ? lastUpdated.toLocaleTimeString() : t('admin.never', 'Never')}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Block Rate</span>
+                <span className="text-gray-600">{t('admin.blockRate', 'Block Rate')}</span>
                 <span className="font-semibold text-red-600">
                   {dashboardData?.transactions?.total ?
                     Math.round((dashboardData.transactions.blocked / dashboardData.transactions.total) * 100) : 0}%

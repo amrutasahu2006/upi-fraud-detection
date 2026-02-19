@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Clock, IndianRupee, User, ShieldCheck, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
 import axios from 'axios'; // Ensure axios is imported
 
 const formatINR = (n) => new Intl.NumberFormat('en-IN').format(Number(n || 0));
 
 export default function TransactionHistory() {
+  const { t } = useTranslation();
   const { token, loading: authLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState({ loading: true, error: null, items: [], pagination: null });
@@ -42,9 +44,9 @@ export default function TransactionHistory() {
   const handleReportToCircle = async (e, tx) => {
     e.stopPropagation(); // Prevent card click
     const vpa = tx.recipientVPA || tx.payeeUpiId;
-    const name = tx.payee || 'Unknown Payee';
+    const name = tx.payee || t('common.unknownPayee', 'Unknown Payee');
 
-    if (!window.confirm(`Report ${vpa} as suspicious to your safety circle?`)) return;
+    if (!window.confirm(t('transactions.reportConfirm', { vpa }))) return;
 
     setReportingId(tx._id);
     try {
@@ -54,9 +56,9 @@ export default function TransactionHistory() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert("Successfully reported. Your circle members will now be warned about this payee.");
+      alert(t('transactions.reportSuccess'));
     } catch (err) {
-      alert("Failed to report. Please try again.");
+      alert(t('transactions.reportFailure'));
     } finally {
       setReportingId(null);
     }
@@ -69,13 +71,13 @@ export default function TransactionHistory() {
       <div className="w-full max-w-screen-lg bg-white flex flex-col">
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <Clock className="text-blue-600" size={24} />
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Transaction History</h1>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">{t('transactions.title')}</h1>
         </header>
 
         <main className="p-4 md:p-6 lg:p-8">
           <div className="mb-8 lg:mb-12">
             <p className="text-base sm:text-xl text-slate-500 max-w-2xl font-medium">
-              Review your recent transactions and risk summaries.
+              {t('transactions.review')}
             </p>
           </div>
 
@@ -83,14 +85,14 @@ export default function TransactionHistory() {
             <div className="lg:col-span-12">
               <div className="bg-white border border-slate-200 rounded-[2.5rem] p-6 sm:p-8 lg:p-12 shadow-sm">
                 <div className="flex items-center justify-between mb-6 sm:mb-8">
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">Recent Transactions</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">{t('transactions.recent')}</h2>
                   <div className="hidden sm:flex items-center text-slate-500 text-sm gap-2">
                     <ShieldCheck size={16} className="text-green-500" />
-                    Secure & Encrypted
+                    {t('common.secureEncrypted')}
                   </div>
                 </div>
 
-                {loading && <div className="text-center text-slate-500 py-10">Loading transactions…</div>}
+                {loading && <div className="text-center text-slate-500 py-10">{t('transactions.loadingTransactions')}</div>}
                 {error && <div className="text-red-700 p-5">{error}</div>}
 
                 {!loading && !error && items.length > 0 && (
@@ -101,13 +103,13 @@ export default function TransactionHistory() {
                       const risk = typeof tx.riskScore === 'number' ? Math.round(tx.riskScore) : null;
                       
                       // Status Badge Logic
-                      let statusBadge = 'bg-slate-100 text-slate-700', statusLabel = 'Processing';
+                      let statusBadge = 'bg-slate-100 text-slate-700', statusLabel = t('transactions.processing');
                       if (tx.status === 'completed') {
                         statusBadge = (tx.decision === 'DELAY' || tx.decision === 'WARN') ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
-                        statusLabel = (tx.decision === 'DELAY' || tx.decision === 'WARN') ? 'Warned' : 'Approved';
+                        statusLabel = (tx.decision === 'DELAY' || tx.decision === 'WARN') ? t('securityWarning.title') : t('transactions.completed');
                       } else if (tx.status === 'blocked') {
                         statusBadge = 'bg-red-100 text-red-700';
-                        statusLabel = 'Blocked';
+                        statusLabel = t('transactions.blocked');
                       }
 
                       return (
@@ -137,7 +139,7 @@ export default function TransactionHistory() {
                               className="hidden group-hover:flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
                             >
                               <AlertTriangle size={14} />
-                              {reportingId === tx._id ? "Reporting..." : "Report"}
+                              {reportingId === tx._id ? t('common.loading') : t('transactions.reportToCircle')}
                             </button>
 
                             <div className="text-right flex flex-col items-end gap-2">
@@ -146,7 +148,7 @@ export default function TransactionHistory() {
                               </span>
                               {risk !== null && (
                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100`}>
-                                  Risk {risk}%
+                                  {t('transactions.riskScore')} {risk}%
                                 </span>
                               )}
                             </div>
@@ -155,6 +157,10 @@ export default function TransactionHistory() {
                       );
                     })}
                   </div>
+                )}
+
+                {!loading && !error && items.length === 0 && (
+                  <div className="text-center text-slate-500 py-10">{t('transactions.noTransactions')}</div>
                 )}
               </div>
             </div>

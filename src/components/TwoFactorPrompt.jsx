@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Shield, AlertCircle, X } from 'lucide-react';
 
 const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [useBackup, setUseBackup] = useState(false);
   const [error, setError] = useState('');
@@ -11,12 +13,12 @@ const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
     e.preventDefault();
     
     if (!useBackup && code.length !== 6) {
-      setError('Please enter a 6-digit code');
+        setError(t('twoFactor.invalidCode'));
       return;
     }
 
     if (useBackup && code.length < 8) {
-      setError('Please enter a valid backup code');
+        setError(t('twoFactor.invalidCode'));
       return;
     }
 
@@ -26,7 +28,7 @@ const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
     try {
       await onVerify(code, useBackup);
     } catch (err) {
-      setError(err.message || 'Verification failed');
+        setError(err.message || t('twoFactor.invalidCode'));
     } finally {
       setLoading(false);
     }
@@ -59,11 +61,11 @@ const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <Shield className="w-8 h-8 text-blue-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Two-Factor Authentication</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('twoFactor.title')}</h2>
           <p className="text-gray-600 text-sm">
             {useBackup 
-              ? 'Enter one of your backup codes'
-              : 'Enter the 6-digit code from your authenticator app'
+                ? t('twoFactor.backupCodeMessage')
+                : t('twoFactor.loginMessage')
             }
           </p>
         </div>
@@ -93,7 +95,7 @@ const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
             disabled={loading || (!useBackup && code.length !== 6) || (useBackup && code.length < 8)}
             className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            {loading ? 'Verifying...' : 'Verify'}
+              {loading ? t('twoFactor.verifying') : t('twoFactor.verifyCode')}
           </button>
         </form>
 
@@ -107,7 +109,7 @@ const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
             }}
             className="text-sm text-blue-600 hover:text-blue-800 underline"
           >
-            {useBackup ? 'Use authenticator code instead' : 'Lost your device? Use backup code'}
+            {useBackup ? t('twoFactor.useAuthenticatorInstead') : t('twoFactor.useBackupCode')}
           </button>
         </div>
 
@@ -115,8 +117,8 @@ const TwoFactorPrompt = ({ onVerify, onCancel, onUseBackupCode }) => {
         <div className="mt-6 pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
             {useBackup
-              ? 'Backup codes were provided when you set up 2FA. Each code can only be used once.'
-              : 'Open your authenticator app to get the current code.'
+                ? t('twoFactor.backupCodesWarning')
+              : t('twoFactor.openAuthenticator')
             }
           </p>
         </div>

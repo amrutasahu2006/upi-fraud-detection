@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { 
   Shield, Paperclip, CreditCard, ShieldCheck, 
   ChevronRight, User, Info, Wallet
@@ -9,6 +10,7 @@ import { analyzeTransaction } from "../services/mockApi";
 import { useAuth } from "../context/AuthContext";
 
 function UPIPaymentClean() {
+  const { t } = useTranslation();
   const [selectedAmount, setSelectedAmount] = useState(500);
   const [upiId, setUpiId] = useState("");
   const [note, setNote] = useState("");
@@ -67,7 +69,7 @@ function UPIPaymentClean() {
   // Handle payment submission with risk analysis
   const handlePayment = async () => {
     if (!upiId || !selectedAmount) {
-      alert("Please enter UPI ID and amount");
+      alert(t('payment.pleaseEnterUpiAndAmount'));
       return;
     }
 
@@ -161,7 +163,7 @@ function UPIPaymentClean() {
           navigate('/blocked', { 
               state: {
                   transaction: transactionData,
-                  reason: result.data.detailedReasons?.[0] || "High Risk Detected",
+                reason: result.data.detailedReasons?.[0] || t('securityWarning.riskDetected'),
                   riskScore: riskScore,
                   decision: decision,
                   amount: result.data.amount || selectedAmount,
@@ -187,14 +189,14 @@ function UPIPaymentClean() {
 
       } else {
         updateTransaction({ status: 'failed' });
-        alert(result.message || 'Risk analysis failed.');
+        alert(result.message || `${t('common.error')}: ${t('securityWarning.analyzing')}`);
       }
     } catch (error) {
       console.error("Error:", error);
       updateTransaction({ status: 'failed', error: error.message });
       setIsProcessing(false);
       setIsAnalyzing(false);
-      alert("Something went wrong: " + error.message);
+      alert(`${t('common.error')}: ${error.message}`);
     }
   };
 
@@ -208,7 +210,7 @@ function UPIPaymentClean() {
         {/* Page Header */}
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <Wallet className="text-blue-600" size={24} />
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Send Money</h1>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">{t('payment.title')}</h1>
         </header>
 
         {/* Main Content */}
@@ -217,7 +219,7 @@ function UPIPaymentClean() {
         {/* Page Heading Section - Scaled text for mobile */}
         <div className="mb-8 lg:mb-12">
           <p className="text-base sm:text-xl text-slate-500 max-w-2xl font-medium">
-            Complete your transaction securely. Funds are transferred instantly.
+            {t('payment.securityAdviceText')}
           </p>
         </div>
 
@@ -231,7 +233,7 @@ function UPIPaymentClean() {
               {/* Amount Entry Area - Key fix: Font size scaling */}
               <section className="mb-8 sm:mb-12">
                 <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block mb-4 sm:mb-8">
-                  Transaction Amount
+                  {t('payment.enterAmount')}
                 </label>
                 <div className="flex items-center space-x-3 sm:space-x-4 border-b-2 border-slate-100 pb-4 sm:pb-6 focus-within:border-blue-500 transition-all mb-6 sm:mb-8">
                   <span className="text-3xl sm:text-5xl font-light text-slate-300">₹</span>
@@ -265,28 +267,28 @@ function UPIPaymentClean() {
               {/* Recipient Details Area */}
               <section className="space-y-6 sm:space-y-8">
                 <div>
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block mb-3 sm:mb-4">Recipient VPA (UPI ID)</label>
+                  <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block mb-3 sm:mb-4">{t('payment.enterUpiId')}</label>
                   <div className="relative group">
                     <User className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
                     <input
                       type="text"
                       value={upiId}
                       onChange={(e) => setUpiId(e.target.value)}
-                      placeholder="e.g. username@bank"
+                      placeholder={t('payment.upiIdPlaceholder')}
                       className="w-full pl-12 sm:pl-16 pr-6 sm:pr-8 py-4 sm:py-6 bg-slate-50 border border-slate-200 rounded-2xl sm:rounded-3xl focus:bg-white focus:ring-4 focus:ring-blue-50/50 focus:border-blue-500 transition-all text-base sm:text-xl font-medium"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block mb-3 sm:mb-4">Transaction Message</label>
+                  <label className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-[0.2em] block mb-3 sm:mb-4">{t('payment.addNote')}</label>
                   <div className="relative group">
                     <Paperclip className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
                     <input
                       type="text"
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
-                      placeholder="Optional note"
+                      placeholder={t('payment.notePlaceholder')}
                       className="w-full pl-12 sm:pl-16 pr-6 sm:pr-8 py-4 sm:py-6 bg-slate-50 border border-slate-200 rounded-2xl sm:rounded-3xl focus:bg-white focus:ring-4 focus:ring-blue-50/50 focus:border-blue-500 transition-all text-base sm:text-xl font-medium"
                     />
                   </div>
@@ -298,7 +300,7 @@ function UPIPaymentClean() {
                     disabled={isProcessing || !upiId || !selectedAmount}
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-bold text-xl sm:text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.2)] transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    {isProcessing ? "Analyzing..." : `Send ₹${selectedAmount?.toLocaleString()}`}
+                    {isProcessing ? t('payment.analyzing') : `${t('payment.payNow')} ₹${selectedAmount?.toLocaleString()}`}
                   </button>
                   
                   <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-6">
@@ -319,7 +321,7 @@ function UPIPaymentClean() {
             
             {/* Recent Recipients - Horizontal scroll on mobile for better UX */}
             <div className="bg-white border border-slate-200 rounded-[2rem] p-6 sm:p-8 shadow-sm">
-              <h3 className="font-bold text-slate-900 text-lg sm:text-xl mb-4 sm:mb-6">Recent Recipients</h3>
+              <h3 className="font-bold text-slate-900 text-lg sm:text-xl mb-4 sm:mb-6">{t('payment.quickContacts')}</h3>
               <div className="space-y-2 sm:space-y-3">
                 {quickContacts.map((contact) => (
                   <button 
@@ -347,9 +349,9 @@ function UPIPaymentClean() {
               <div className="flex items-start space-x-3 sm:space-x-4">
                 <Info size={20} className="text-orange-500 shrink-0 mt-1" />
                 <div>
-                  <h4 className="font-bold text-orange-900 text-sm sm:text-base mb-1">Security Advice</h4>
+                  <h4 className="font-bold text-orange-900 text-sm sm:text-base mb-1">{t('payment.securityAdvice')}</h4>
                   <p className="text-orange-800/70 text-xs sm:text-sm leading-relaxed">
-                    Always verify the receiver's name before entering your secret UPI PIN. 
+                    {t('payment.securityAdviceText')}
                   </p>
                 </div>
               </div>

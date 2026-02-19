@@ -48,6 +48,11 @@ const userSchema = new mongoose.Schema({
       type: String
     }
   },
+  languagePreference: {
+    type: String,
+    enum: ['en', 'hi'],
+    default: 'en'
+  },
   lastLogin: {
     type: Date
   },

@@ -149,13 +149,13 @@ export default function FraudHeatmap({ selectedDateRange }) {
   }
 
   return (
-    <div className="w-full h-64 bg-white border rounded-lg p-4">
+    <div className="relative w-full h-64 bg-white border rounded-lg p-4">
       <div className="h-full">
         <Bubble data={chartData} options={options} />
       </div>
 
       {/* Legend */}
-      <div className="absolute top-2 right-2 bg-white bg-opacity-90 p-2 rounded text-xs">
+      <div className="absolute top-3 right-3 bg-white bg-opacity-90 p-2 rounded text-xs z-10">
         <div className="font-semibold mb-1">Risk Level</div>
         <div className="flex items-center gap-1 mb-1">
           <div className="w-3 h-3 bg-red-600 rounded-full"></div>

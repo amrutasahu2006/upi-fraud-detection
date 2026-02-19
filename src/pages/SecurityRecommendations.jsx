@@ -4,10 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import { DollarSign, Monitor, Shield, Lock } from "lucide-react";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
 import PasswordConfirmModal from "../components/PasswordConfirmModal";
+import { useTranslation } from 'react-i18next';
 
 function SecurityRecommendations() {
   const { token, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [dailyLimit, setDailyLimit] = useState(null);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,7 @@ function SecurityRecommendations() {
       if (data.success) {
         setTwoFactorEnabled(false);
         setShowPasswordModal(false);
-        setMessage({ type: 'success', text: '✅ 2FA disabled successfully!' });
+        setMessage({ type: 'success', text: `✅ ${t('twoFactor.disableSuccess')}` });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       } else {
         throw new Error(data.message || 'Failed to disable 2FA');
@@ -92,7 +94,7 @@ function SecurityRecommendations() {
 
   const handleSaveDailyLimit = async () => {
     if (!inputValue || inputValue < 1000) {
-      setMessage({ type: 'error', text: '❌ Please enter a limit of at least ₹1000' });
+      setMessage({ type: 'error', text: `❌ ${t('security.dailyLimitMin')}` });
       return;
     }
 
@@ -114,7 +116,7 @@ function SecurityRecommendations() {
       if (data.success) {
         setDailyLimit(inputValue);
         setInputValue('');
-        setMessage({ type: 'success', text: '✅ Daily limit set successfully!' });
+        setMessage({ type: 'success', text: `✅ ${t('security.dailyLimitSetSuccess')}` });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       } else {
         setMessage({ type: 'error', text: `❌ ${data.message || 'Failed to set daily limit'}` });
@@ -146,7 +148,7 @@ function SecurityRecommendations() {
       if (data.success) {
         setDailyLimit(null);
         setInputValue('');
-        setMessage({ type: 'success', text: '✅ Daily limit removed successfully!' });
+        setMessage({ type: 'success', text: `✅ ${t('security.dailyLimitRemovedSuccess')}` });
         setTimeout(() => setMessage({ type: '', text: '' }), 3000);
       } else {
         setMessage({ type: 'error', text: `❌ ${data.message || 'Failed to remove daily limit'}` });
@@ -166,7 +168,7 @@ function SecurityRecommendations() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-slate-500">Loading...</div>
+        <div className="text-slate-500">{t('common.loading')}</div>
       </div>
     );
   }
@@ -177,7 +179,7 @@ function SecurityRecommendations() {
         {/* Page Header */}
         <header className="flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <Link to="/" className="text-2xl cursor-pointer">←</Link>
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Security Recommendations</h1>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">{t('security.title')}</h1>
         </header>
 
         {/* Main Content */}
@@ -193,10 +195,10 @@ function SecurityRecommendations() {
           {/* Heading Section */}
           <div className="mb-8">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-              Recommended Security Actions
+              {t('security.recommendations')}
             </h2>
             <p className="text-gray-600 text-sm md:text-base leading-relaxed">
-              Take these actions to protect your account and reduce loss risk.
+              {t('security.subtitle')}
             </p>
           </div>
 
@@ -207,19 +209,19 @@ function SecurityRecommendations() {
                 <DollarSign size={32} className="text-green-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Set Daily Transaction Limit</h3>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{t('security.dailyLimitTitle')}</h3>
                 <p className="text-gray-700 mb-4">
-                  Limit how much you can send daily to reduce loss risk.
+                  {t('security.dailyLimitDescription')}
                 </p>
                 
                 <div className="bg-white rounded-lg p-4 mb-4 border border-green-100">
                   <label className="block text-sm font-semibold text-gray-700 mb-3">
-                    Daily Limit (₹)
+                    {t('security.dailyLimitLabel')}
                   </label>
                   
                   {/* Quick Preset Buttons */}
                   <div className="mb-4">
-                    <p className="text-xs text-gray-600 mb-2">Quick presets:</p>
+                    <p className="text-xs text-gray-600 mb-2">{t('security.quickPresets')}</p>
                     <div className="flex flex-wrap gap-2">
                       {[5000, 10000, 25000, 50000, 100000].map((amount) => (
                         <button
@@ -238,7 +240,7 @@ function SecurityRecommendations() {
                       type="number"
                       value={inputValue}
                       onChange={(e) => setInputValue(Number(e.target.value) || '')}
-                      placeholder="Enter limit amount"
+                      placeholder={t('security.dailyLimitLabel')}
                       className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-lg font-semibold"
                       min="1000"
                       step="1000"
@@ -248,7 +250,7 @@ function SecurityRecommendations() {
                       disabled={saving || !inputValue}
                       className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
-                      {saving ? 'Saving...' : 'Set Limits'}
+                      {saving ? t('common.saving') : t('security.setLimits')}
                     </button>
                     {dailyLimit && (
                       <button
@@ -256,12 +258,12 @@ function SecurityRecommendations() {
                         disabled={saving}
                         className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
-                        {saving ? 'Removing...' : 'Unset'}
+                        {saving ? t('common.removing') : t('security.unset')}
                       </button>
                     )}
                   </div>
                   <p className="text-xs mt-2 text-gray-500">
-                    Current limit: {dailyLimit ? `₹${dailyLimit.toLocaleString()}` : 'Not Set'}
+                    {t('security.currentLimit')}: {dailyLimit ? `₹${dailyLimit.toLocaleString()}` : t('security.notSet')}
                   </p>
                 </div>
               </div>
@@ -276,17 +278,17 @@ function SecurityRecommendations() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl md:text-2xl font-bold text-gray-900">Two-Factor Authentication</h3>
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-900">{t('twoFactor.title')}</h3>
                   {twoFactorEnabled && (
                     <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                      Enabled
+                      {t('security.twoFactorCard.statusEnabled')}
                     </span>
                   )}
                 </div>
                 <p className="text-gray-700 mb-4">
                   {twoFactorEnabled
-                    ? 'Your account is protected with 2FA. Manage your settings below.'
-                    : 'Add an extra layer of security to your account with two-factor authentication.'}
+                    ? t('security.twoFactorEnabledDesc')
+                    : t('security.twoFactorDisabledDesc')}
                 </p>
                 
                 {twoFactorEnabled ? (
@@ -294,14 +296,14 @@ function SecurityRecommendations() {
                     onClick={() => setShowPasswordModal(true)}
                     className="w-full md:w-auto px-8 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
                   >
-                    Disable 2FA
+                    {t('twoFactor.disable')}
                   </button>
                 ) : (
                   <button
                     onClick={() => navigate('/setup-2fa')}
                     className="w-full md:w-auto px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
                   >
-                    Enable 2FA
+                    {t('twoFactor.enable')}
                   </button>
                 )}
               </div>
@@ -315,16 +317,16 @@ function SecurityRecommendations() {
                 <Monitor size={32} className="text-red-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">Review Connected Devices</h3>
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{t('security.reviewDevicesTitle')}</h3>
                 <p className="text-gray-700 mb-4">
-                  Remove unrecognized devices from your account.
+                  {t('security.reviewDevicesDesc')}
                 </p>
                 
                 <button
                   onClick={() => navigate('/connected-devices')}
                   className="w-full md:w-auto px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                 >
-                  Review Devices
+                  {t('security.reviewDevicesAction')}
                 </button>
               </div>
             </div>
@@ -333,10 +335,10 @@ function SecurityRecommendations() {
           {/* Heading Section */}
           <div className="mb-6 md:mb-8">
             <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
-              Stay Secure, Always.
+              {t('security.staySecureTitle')}
             </h2>
             <p className="text-gray-600 text-sm md:text-base leading-relaxed">
-              AI-powered recommendations based on detected risk factors to keep your account safe.
+              {t('security.staySecureDesc')}
             </p>
           </div>
 
@@ -353,8 +355,8 @@ function SecurityRecommendations() {
       {/* Password Confirmation Modal for Disabling 2FA */}
       {showPasswordModal && (
         <PasswordConfirmModal
-          title="Disable Two-Factor Authentication"
-          message="Enter your password to confirm disabling 2FA"
+          title={t('twoFactor.disableTitle')}
+          message={t('twoFactor.enterPassword')}
           onConfirm={handleDisable2FA}
           onCancel={() => setShowPasswordModal(false)}
         />

@@ -7,7 +7,9 @@ const {
   verify2FA,
   verify2FALogin,
   disable2FA,
-  get2FAStatus
+  get2FAStatus,
+  updateLanguagePreference,
+  getLanguagePreference
 } = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 const User = require('../models/User');
@@ -29,6 +31,10 @@ router.post('/setup-2fa', authenticate, setup2FA); // Protected
 router.post('/verify-2fa', authenticate, verify2FA); // Protected
 router.post('/disable-2fa', authenticate, disable2FA); // Protected
 router.get('/2fa-status', authenticate, get2FAStatus); // Protected
+
+// Language preference routes
+router.get('/language-preference', authenticate, getLanguagePreference);
+router.post('/language-preference', authenticate, updateLanguagePreference);
 
 // Protected routes
 router.get('/me', authenticate, getMe);

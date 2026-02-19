@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Shield, AlertTriangle, CheckCircle, XCircle, Settings } from 'lucide-react';
 
 /**
@@ -8,6 +9,7 @@ import { Shield, AlertTriangle, CheckCircle, XCircle, Settings } from 'lucide-re
  * - View system statistics
  */
 export default function RiskManagementPanel() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('thresholds');
   const [thresholds, setThresholds] = useState(null);
   const [blacklist, setBlacklist] = useState([]);
@@ -38,7 +40,7 @@ export default function RiskManagementPanel() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setMessage({ type: 'error', text: 'Authentication required. Please login first.' });
+        setMessage({ type: 'error', text: t('admin.authRequired', 'Authentication required. Please login first.') });
         return;
       }
       
@@ -55,7 +57,7 @@ export default function RiskManagementPanel() {
         setWarnThreshold(t.WARN);
         console.log('✅ Thresholds loaded:', t);
       } else {
-        setMessage({ type: 'error', text: result.message || 'Failed to load thresholds' });
+        setMessage({ type: 'error', text: result.message || t('admin.thresholdLoadFailed', 'Failed to load thresholds') });
       }
     } catch (error) {
       console.error('Error fetching thresholds:', error);
@@ -82,13 +84,13 @@ export default function RiskManagementPanel() {
 
       const result = await response.json();
       if (result.success) {
-        setMessage({ type: 'success', text: 'Thresholds updated successfully!' });
+        setMessage({ type: 'success', text: t('admin.thresholdUpdateSuccess', 'Thresholds updated successfully!') });
         fetchThresholds();
       } else {
         setMessage({ type: 'error', text: result.message });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update thresholds' });
+      setMessage({ type: 'error', text: t('admin.thresholdUpdateFailed', 'Failed to update thresholds') });
     } finally {
       setLoading(false);
       setTimeout(() => setMessage(null), 3000);
@@ -99,7 +101,7 @@ export default function RiskManagementPanel() {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setMessage({ type: 'error', text: 'Authentication required. Please login first.' });
+        setMessage({ type: 'error', text: t('admin.authRequired', 'Authentication required. Please login first.') });
         return;
       }
       
@@ -112,7 +114,7 @@ export default function RiskManagementPanel() {
         setBlacklist(result.data);
         console.log('✅ Blacklist loaded:', result.data.length, 'entries');
       } else {
-        setMessage({ type: 'error', text: result.message || 'Failed to load blacklist' });
+        setMessage({ type: 'error', text: result.message || t('admin.blacklistLoadFailed', 'Failed to load blacklist') });
       }
     } catch (error) {
       console.error('Error fetching blacklist:', error);
@@ -137,14 +139,14 @@ export default function RiskManagementPanel() {
 
       const result = await response.json();
       if (result.success) {
-        setMessage({ type: 'success', text: 'Added to blacklist successfully!' });
+        setMessage({ type: 'success', text: t('admin.blacklistAddSuccess', 'Added to blacklist successfully!') });
         setNewBlacklistEntry({ vpa: '', reason: '', severity: 'high' });
         fetchBlacklist();
       } else {
         setMessage({ type: 'error', text: result.message });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to add to blacklist' });
+      setMessage({ type: 'error', text: t('admin.blacklistAddFailed', 'Failed to add to blacklist') });
     } finally {
       setLoading(false);
       setTimeout(() => setMessage(null), 3000);
@@ -152,7 +154,7 @@ export default function RiskManagementPanel() {
   };
 
   const removeFromBlacklist = async (id) => {
-    if (!confirm('Are you sure you want to remove this entry from blacklist?')) return;
+    if (!confirm(t('admin.blacklistRemoveConfirm', 'Are you sure you want to remove this entry from blacklist?'))) return;
 
     try {
       const token = localStorage.getItem('token');
@@ -163,11 +165,11 @@ export default function RiskManagementPanel() {
 
       const result = await response.json();
       if (result.success) {
-        setMessage({ type: 'success', text: 'Removed from blacklist' });
+        setMessage({ type: 'success', text: t('admin.blacklistRemoveSuccess', 'Removed from blacklist') });
         fetchBlacklist();
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to remove from blacklist' });
+      setMessage({ type: 'error', text: t('admin.blacklistRemoveFailed', 'Failed to remove from blacklist') });
     } finally {
       setTimeout(() => setMessage(null), 3000);
     }
@@ -181,8 +183,8 @@ export default function RiskManagementPanel() {
           <div className="flex items-center gap-3">
             <Shield className="w-8 h-8 text-blue-600" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Risk Management Panel</h1>
-              <p className="text-gray-600">Configure risk thresholds and manage blacklist/whitelist</p>
+              <h1 className="text-2xl font-bold text-gray-800">{t('admin.riskManagement')}</h1>
+              <p className="text-gray-600">{t('admin.riskPanelSubtitle', 'Configure risk thresholds and manage blacklist/whitelist')}</p>
               <p className="text-sm text-blue-600 mt-2">✅ Panel loaded successfully</p>
             </div>
           </div>
@@ -200,7 +202,7 @@ export default function RiskManagementPanel() {
               }`}
             >
               <Settings className="inline-block w-5 h-5 mr-2" />
-              Thresholds
+              {t('admin.thresholds', 'Thresholds')}
             </button>
             <button
               onClick={() => setActiveTab('blacklist')}
@@ -211,7 +213,7 @@ export default function RiskManagementPanel() {
               }`}
             >
               <XCircle className="inline-block w-5 h-5 mr-2" />
-              Blacklist
+              {t('admin.blacklist', 'Blacklist')}
             </button>
           </div>
         </div>
@@ -228,7 +230,7 @@ export default function RiskManagementPanel() {
         {/* Threshold Configuration */}
         {activeTab === 'thresholds' && (
           <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-xl font-bold mb-6 text-gray-800">Risk Score Thresholds</h2>
+            <h2 className="text-xl font-bold mb-6 text-gray-800">{t('admin.riskThresholds', 'Risk Score Thresholds')}</h2>
             
             <div className="space-y-6">
               {/* BLOCK Threshold */}
@@ -238,7 +240,7 @@ export default function RiskManagementPanel() {
                     <XCircle className="w-6 h-6 text-red-600" />
                     <div>
                       <h3 className="font-bold text-gray-800">Block Threshold</h3>
-                      <p className="text-sm text-gray-600">Transactions with score ≥ this will be blocked</p>
+                      <p className="text-sm text-gray-600">{t('admin.blockThresholdDesc', 'Transactions with score ≥ this will be blocked')}</p>
                     </div>
                   </div>
                   <span className="text-3xl font-bold text-red-600">{blockThreshold}</span>
@@ -260,7 +262,7 @@ export default function RiskManagementPanel() {
                     <AlertTriangle className="w-6 h-6 text-orange-600" />
                     <div>
                       <h3 className="font-bold text-gray-800">Delay Threshold</h3>
-                      <p className="text-sm text-gray-600">Transactions between this and block will be delayed</p>
+                      <p className="text-sm text-gray-600">{t('admin.delayThresholdDesc', 'Transactions between this and block will be delayed')}</p>
                     </div>
                   </div>
                   <span className="text-3xl font-bold text-orange-600">{delayThreshold}</span>
@@ -282,7 +284,7 @@ export default function RiskManagementPanel() {
                     <AlertTriangle className="w-6 h-6 text-yellow-600" />
                     <div>
                       <h3 className="font-bold text-gray-800">Warning Threshold</h3>
-                      <p className="text-sm text-gray-600">Transactions between this and delay will show warning</p>
+                      <p className="text-sm text-gray-600">{t('admin.warnThresholdDesc', 'Transactions between this and delay will show warning')}</p>
                     </div>
                   </div>
                   <span className="text-3xl font-bold text-yellow-600">{warnThreshold}</span>
@@ -299,7 +301,7 @@ export default function RiskManagementPanel() {
 
               {/* Summary */}
               <div className="p-6 bg-blue-50 rounded-xl">
-                <h3 className="font-bold mb-3 text-gray-800">Decision Summary</h3>
+                <h3 className="font-bold mb-3 text-gray-800">{t('admin.decisionSummary', 'Decision Summary')}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
                     <span>Score {blockThreshold}-100:</span>
@@ -325,7 +327,7 @@ export default function RiskManagementPanel() {
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-all"
               >
-                {loading ? 'Updating...' : 'Update Thresholds'}
+                {loading ? t('common.loading') : t('admin.updateThresholds', 'Update Thresholds')}
               </button>
             </div>
           </div>
@@ -336,10 +338,10 @@ export default function RiskManagementPanel() {
           <div className="space-y-6">
             {/* Add to Blacklist Form */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h2 className="text-xl font-bold mb-6 text-gray-800">Add to Blacklist</h2>
+              <h2 className="text-xl font-bold mb-6 text-gray-800">{t('admin.addBlacklist', 'Add to Blacklist')}</h2>
               <form onSubmit={addToBlacklist} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">VPA ID *</label>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">{t('admin.vpaId', 'VPA ID')} *</label>
                   <input
                     type="text"
                     value={newBlacklistEntry.vpa}
@@ -350,7 +352,7 @@ export default function RiskManagementPanel() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Reason *</label>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">{t('admin.reason', 'Reason')} *</label>
                   <textarea
                     value={newBlacklistEntry.reason}
                     onChange={(e) => setNewBlacklistEntry({ ...newBlacklistEntry, reason: e.target.value })}
@@ -361,7 +363,7 @@ export default function RiskManagementPanel() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">Severity</label>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">{t('admin.severity', 'Severity')}</label>
                   <select
                     value={newBlacklistEntry.severity}
                     onChange={(e) => setNewBlacklistEntry({ ...newBlacklistEntry, severity: e.target.value })}
@@ -378,7 +380,7 @@ export default function RiskManagementPanel() {
                   disabled={loading}
                   className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 disabled:opacity-50 transition-all"
                 >
-                  {loading ? 'Adding...' : 'Add to Blacklist'}
+                  {loading ? t('common.loading') : t('admin.addBlacklist', 'Add to Blacklist')}
                 </button>
               </form>
             </div>
@@ -386,11 +388,11 @@ export default function RiskManagementPanel() {
             {/* Blacklist Entries */}
             <div className="bg-white rounded-2xl shadow-lg p-8">
               <h2 className="text-xl font-bold mb-6 text-gray-800">
-                Blacklist Entries ({blacklist.length})
+                {t('admin.blacklistEntries', 'Blacklist Entries')} ({blacklist.length})
               </h2>
               
               {blacklist.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No blacklist entries yet</p>
+                <p className="text-gray-500 text-center py-8">{t('admin.noBlacklist', 'No blacklist entries yet')}</p>
               ) : (
                 <div className="space-y-3">
                   {blacklist.map((entry) => (
@@ -413,7 +415,7 @@ export default function RiskManagementPanel() {
                         onClick={() => removeFromBlacklist(entry._id)}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
                       >
-                        Remove
+                        {t('connectedDevices.remove')}
                       </button>
                     </div>
                   ))}

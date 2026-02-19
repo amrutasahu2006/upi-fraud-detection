@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import TwoFactorPrompt from '../../components/TwoFactorPrompt';
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -40,7 +42,7 @@ const LoginPage = () => {
         navigate('/');
       }
     } else {
-      setError(result.message || 'Login failed');
+      setError(result.message || t('auth.loginFailed'));
     }
     
     setLoading(false);
@@ -60,15 +62,15 @@ const LoginPage = () => {
   const handle2FACancel = () => {
     setShow2FA(false);
     setTempUserId(null);
-    setError('Login cancelled. Please try again.');
+    setError(t('auth.loginCancelled'));
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">Welcome Back</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+            <h1 className="text-3xl font-bold text-gray-800">{t('auth.welcomeBack')}</h1>
+            <p className="text-gray-600 mt-2">{t('auth.enterCredentials')}</p>
         </div>
 
         {error && (
@@ -80,7 +82,7 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address
+              {t('auth.email')}
             </label>
             <input
               type="email"
@@ -89,14 +91,14 @@ const LoginPage = () => {
               value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="Enter your email"
+              placeholder={t('auth.enterEmail')}
               required
             />
           </div>
 
           <div className="mb-6">
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+                {t('auth.password')}
             </label>
             <input
               type="password"
@@ -105,7 +107,7 @@ const LoginPage = () => {
               value={formData.password}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="Enter your password"
+              placeholder={t('auth.enterPassword')}
               required
             />
           </div>
@@ -119,15 +121,15 @@ const LoginPage = () => {
                 : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
             }`}
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? `${t('common.loading')}` : t('auth.signIn')}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-gray-600">
-            Don't have an account?{' '}
+              {t('auth.dontHaveAccount')}{' '}
             <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
-              Sign up
+                {t('auth.signUp')}
             </Link>
           </p>
         </div>

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { Shield, Check, Copy, Download, AlertTriangle, Key, Smartphone } from 'lucide-react';
 
 const Setup2FA = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
+  const { t } = useTranslation();
   const [step, setStep] = useState(1); // 1: Setup, 2: Verify, 3: Backup Codes, 4: Complete
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
@@ -35,10 +37,10 @@ const Setup2FA = () => {
         setSecret(data.data.manualEntry);
         setBackupCodes(data.data.backupCodes);
       } else {
-        setError(data.message || 'Failed to setup 2FA');
+        setError(data.message || t('twoFactor.setupError'));
       }
     } catch (err) {
-      setError('Network error during setup');
+      setError(t('twoFactor.setupError'));
       console.error('2FA setup error:', err);
     } finally {
       setLoading(false);
@@ -47,7 +49,7 @@ const Setup2FA = () => {
 
   const handleVerify = async () => {
     if (verificationCode.length !== 6) {
-      setError('Please enter a 6-digit code');
+      setError(t('twoFactor.invalidCode'));
       return;
     }
 
@@ -68,10 +70,10 @@ const Setup2FA = () => {
       if (data.success) {
         setStep(3); // Show backup codes
       } else {
-        setError(data.message || 'Invalid verification code');
+        setError(data.message || t('twoFactor.invalidCode'));
       }
     } catch (err) {
-      setError('Verification failed');
+      setError(t('twoFactor.invalidCode'));
       console.error('2FA verification error:', err);
     } finally {
       setLoading(false);
@@ -107,8 +109,8 @@ const Setup2FA = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <Shield className="w-8 h-8 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Enable Two-Factor Authentication</h1>
-          <p className="text-gray-600">Add an extra layer of security to your account</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('twoFactor.setupTitle')}</h1>
+          <p className="text-gray-600">{t('security.twoFactorCard.description')}</p>
         </div>
 
         {/* Progress Indicator */}
@@ -132,11 +134,11 @@ const Setup2FA = () => {
           <div className="bg-white rounded-xl shadow-lg p-8">
             <div className="flex items-center gap-3 mb-6">
               <Smartphone className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Step 1: Install Authenticator App</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('twoFactor.setupStep1')}</h2>
             </div>
             
             <div className="space-y-4 mb-6">
-              <p className="text-gray-700">Download and install an authenticator app on your phone:</p>
+              <p className="text-gray-700">{t('twoFactor.installAppIntro')}</p>
               <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
                 <li>Google Authenticator (iOS/Android)</li>
                 <li>Microsoft Authenticator (iOS/Android)</li>
@@ -151,14 +153,14 @@ const Setup2FA = () => {
             ) : qrCode ? (
               <div className="space-y-6">
                 <div className="bg-gray-50 p-6 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-4 text-center">Scan this QR code with your authenticator app:</p>
+                  <p className="text-sm text-gray-600 mb-4 text-center">{t('twoFactor.scanQR')}</p>
                   <div className="flex justify-center">
                     <img src={qrCode} alt="2FA QR Code" className="w-64 h-64 border-4 border-white rounded-lg shadow-md" />
                   </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-blue-900 mb-2">Can't scan? Enter this code manually:</p>
+                  <p className="text-sm font-semibold text-blue-900 mb-2">{t('twoFactor.manualEntry')}</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 bg-white px-3 py-2 rounded border border-blue-200 text-sm font-mono break-all">
                       {secret}
@@ -177,7 +179,7 @@ const Setup2FA = () => {
                   onClick={() => setStep(2)}
                   className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                 >
-                  Continue to Verification
+                  {t('twoFactor.continueVerification')}
                 </button>
               </div>
             ) : error && (
@@ -193,10 +195,10 @@ const Setup2FA = () => {
           <div className="bg-white rounded-xl shadow-lg p-8">
             <div className="flex items-center gap-3 mb-6">
               <Key className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-900">Step 2: Verify Your Code</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('twoFactor.setupStep2')}</h2>
             </div>
 
-            <p className="text-gray-700 mb-6">Enter the 6-digit code from your authenticator app:</p>
+            <p className="text-gray-700 mb-6">{t('twoFactor.enterCode')}</p>
 
             <div className="space-y-4">
               <input
@@ -222,14 +224,14 @@ const Setup2FA = () => {
                   onClick={() => setStep(1)}
                   className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold"
                 >
-                  Back
+                  {t('common.back')}
                 </button>
                 <button
                   onClick={handleVerify}
                   disabled={verificationCode.length !== 6 || loading}
                   className="flex-1 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Verifying...' : 'Verify & Enable 2FA'}
+                  {loading ? t('twoFactor.verifying') : t('twoFactor.verifyEnable')}
                 </button>
               </div>
             </div>
@@ -241,14 +243,13 @@ const Setup2FA = () => {
           <div className="bg-white rounded-xl shadow-lg p-8">
             <div className="flex items-center gap-3 mb-6">
               <AlertTriangle className="w-6 h-6 text-yellow-600" />
-              <h2 className="text-xl font-bold text-gray-900">Step 3: Save Your Backup Codes</h2>
+              <h2 className="text-xl font-bold text-gray-900">{t('twoFactor.setupStep3')}</h2>
             </div>
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-              <p className="text-yellow-900 font-semibold mb-2">⚠️ Important: Save these backup codes</p>
+              <p className="text-yellow-900 font-semibold mb-2">{t('twoFactor.backupCodesImportant')}</p>
               <p className="text-yellow-800 text-sm">
-                If you lose access to your authenticator app, you can use these codes to log in. 
-                Each code can only be used once.
+                {t('twoFactor.backupCodesWarning')}
               </p>
             </div>
 
@@ -268,19 +269,19 @@ const Setup2FA = () => {
                 className="w-full flex items-center justify-center gap-2 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors font-semibold"
               >
                 <Download size={20} />
-                Download Backup Codes
+                {t('twoFactor.downloadCodes')}
               </button>
 
               <button
                 onClick={handleComplete}
                 className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
               >
-                Complete Setup
+                {t('twoFactor.setupComplete')}
               </button>
             </div>
 
             <p className="text-xs text-gray-500 text-center mt-4">
-              Store these codes in a secure location, such as a password manager
+              {t('twoFactor.backupCodesStore')}
             </p>
           </div>
         )}
@@ -292,7 +293,7 @@ const Setup2FA = () => {
               onClick={() => navigate('/recommendations')}
               className="text-gray-600 hover:text-gray-900 text-sm"
             >
-              Cancel and go back
+              {t('common.cancel')}
             </button>
           </div>
         )}

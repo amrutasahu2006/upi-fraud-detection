@@ -64,7 +64,7 @@ function App() {
     // A. Ask for permission and get the token
     const setupNotifications = async () => {
       const token = await requestPermission();
-      
+
       if (token) {
         console.log("Got FCM Token:", token);
         // TODO: Send this token to your Backend to save it to the User's profile
@@ -79,7 +79,7 @@ function App() {
     // Inside your useEffect in App.jsx
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground Message received:', payload);
-      
+
       // Custom logic for Circle Alerts
       if (payload.data?.type === 'CIRCLE_THREAT') {
         alert(`🛡️ CIRCLE SAFETY ALERT: A member of your trusted circle reported ${payload.data.payeeName}. Be careful!`);
@@ -146,21 +146,21 @@ function App() {
 
             {/* Security & Recommendations */}
             <Route path="/recommendations" element={<SecurityRecommendations />} />
-            <Route 
-              path="/connected-devices" 
+            <Route
+              path="/connected-devices"
               element={
                 <ProtectedRoute>
                   <ConnectedDevices />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/setup-2fa" 
+            <Route
+              path="/setup-2fa"
               element={
                 <ProtectedRoute>
                   <Setup2FA />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route path="/safety" element={<Safety />} />
             <Route path="/privacy-settings" element={<PrivacySettings />} />

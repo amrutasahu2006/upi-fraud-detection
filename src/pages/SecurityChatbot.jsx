@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useTransaction } from "../context/TransactionContext";
 import { chatbot } from "../services/chatbotService";
 import { Send, AlertCircle, CheckCircle, Clock } from "lucide-react";
 
 function SecurityChatbot() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { currentTransaction, riskAnalysis } = useTransaction();
   
@@ -27,24 +29,46 @@ function SecurityChatbot() {
         riskScore: riskAnalysis.riskScore
       });
       chatbot.setContext(currentTransaction, riskAnalysis);
-      const greeting = chatbot.generateInitialGreeting();
+      const greeting = chatbot.generateInitialGreeting(t);
       chatbot.addMessage(greeting, 'bot');
-      setMessages([{ content: greeting, type: 'bot', id: 1 }]);
+      setMessages([{ content: greeting, type: 'bot', id: 1, meta: { kind: 'greeting' } }]);
     } else {
       // Fallback if no transaction data
       console.log("⚠️ No transaction/risk data, showing fallback greeting");
-      const fallbackGreeting = "Hey! I'm SurakshaPay AI, your fraud detection assistant. To analyze a transaction, please make a payment first. I can help you understand risk factors and make safe decisions!";
+      const fallbackGreeting = t('chatbot.greeting');
       chatbot.addMessage(fallbackGreeting, 'bot');
-      setMessages([{ content: fallbackGreeting, type: 'bot', id: 1 }]);
+      setMessages([{ content: fallbackGreeting, type: 'bot', id: 1, meta: { kind: 'greeting' } }]);
     }
   }, [currentTransaction, riskAnalysis]);
+
+  // Retranslate existing bot messages when language changes
+  useEffect(() => {
+    setMessages((prev) => prev.map((msg) => {
+      if (msg.type !== 'bot') return msg;
+
+      if (msg.meta?.kind === 'greeting') {
+        return { ...msg, content: chatbot.generateInitialGreeting(t) };
+      }
+
+      if (msg.meta?.kind === 'response' && msg.meta?.userMessage) {
+        const regenerated = chatbot.generateResponse(msg.meta.userMessage, t);
+        return { ...msg, content: regenerated.text };
+      }
+
+      if (msg.meta?.i18nKey) {
+        return { ...msg, content: t(msg.meta.i18nKey, msg.meta.i18nValues || {}) };
+      }
+
+      return msg;
+    }));
+  }, [i18n.language, t]);
 
   /**
    * Execute action (block, delay, approve)
    */
   const executeAction = async (action) => {
     if (!riskAnalysis?.transactionId) {
-      setError("Transaction ID not found");
+      setError(t('chatbot.transactionIdNotFound', 'Transaction ID not found'));
       console.error("❌ Transaction ID missing:", riskAnalysis);
       return;
     }
@@ -57,7 +81,7 @@ function SecurityChatbot() {
       console.log("🔑 Token check:", { token: token ? '✅ Found' : '❌ Not found', tokenLength: token?.length });
       
       if (!token) {
-        throw new Error('No authentication token found. Please log in first.');
+        throw new Error(t('chatbot.tokenMissing', 'No authentication token found. Please log in first.'));
       }
 
       let endpoint = '';
@@ -67,15 +91,15 @@ function SecurityChatbot() {
 
       if (action === 'BLOCK') {
         endpoint = '/api/analysis/action/block';
-        body = { transactionId: riskAnalysis.transactionId, reason: 'User blocked via chatbot' };
+        body = { transactionId: riskAnalysis.transactionId, reason: t('chatbot.blockReasonUserAction', 'User blocked via chatbot') };
       } else if (action === 'DELAY') {
         endpoint = '/api/analysis/action/delay';
         body = { transactionId: riskAnalysis.transactionId, delayMinutes: 5 };
       } else if (action === 'APPROVE') {
         // For approve, we just show success message and let user navigate
-        const successMsg = '✅ Transaction approved! Proceeding with payment.';
+        const successMsg = t('chatbot.approveSuccess', '✅ Transaction approved! Proceeding with payment.');
         chatbot.addMessage(successMsg, 'bot');
-        setMessages(prev => [...prev, { content: successMsg, type: 'bot', id: Date.now() }]);
+          setMessages(prev => [...prev, { content: successMsg, type: 'bot', id: Date.now(), meta: { i18nKey: 'chatbot.approveSuccess' } }]);
         setTimeout(() => navigate('/payment'), 1500);
         return;
       }
@@ -98,17 +122,19 @@ function SecurityChatbot() {
       }
 
       if (action === 'BLOCK') {
-        chatbot.addMessage('🚫 Transaction blocked successfully! Your account is protected.', 'bot');
-        setMessages(prev => [...prev, { content: '🚫 Transaction blocked successfully! Your account is protected.', type: 'bot', id: Date.now() }]);
+        const blockMsg = t('chatbot.blockSuccess', '🚫 Transaction blocked successfully! Your account is protected.');
+        chatbot.addMessage(blockMsg, 'bot');
+          setMessages(prev => [...prev, { content: blockMsg, type: 'bot', id: Date.now(), meta: { i18nKey: 'chatbot.blockSuccess' } }]);
         setTimeout(() => navigate('/blocked'), 1500);
       } else if (action === 'DELAY') {
-        chatbot.addMessage('⏳ Transaction delayed for 5 minutes. This gives you time to verify everything.', 'bot');
-        setMessages(prev => [...prev, { content: '⏳ Transaction delayed for 5 minutes. This gives you time to verify everything.', type: 'bot', id: Date.now() }]);
+        const delayMsg = t('chatbot.delaySuccess', '⏳ Transaction delayed for 5 minutes. This gives you time to verify everything.');
+        chatbot.addMessage(delayMsg, 'bot');
+          setMessages(prev => [...prev, { content: delayMsg, type: 'bot', id: Date.now(), meta: { i18nKey: 'chatbot.delaySuccess' } }]);
         setTimeout(() => navigate('/security-warning'), 1500);
       }
     } catch (err) {
       console.error('Action error:', err);
-      setError(err.message || 'Failed to process action');
+      setError(err.message || t('chatbot.actionFailed'));
       chatbot.addMessage(`❌ Error: ${err.message}`, 'bot');
       setMessages(prev => [...prev, { content: `❌ Error: ${err.message}`, type: 'bot', id: Date.now() }]);
     } finally {
@@ -126,17 +152,17 @@ function SecurityChatbot() {
     const userMsg = userInput.trim();
       console.log("📤 User sent message:", userMsg);
     chatbot.addMessage(userMsg, 'user');
-    setMessages(prev => [...prev, { content: userMsg, type: 'user', id: Date.now() }]);
+      setMessages(prev => [...prev, { content: userMsg, type: 'user', id: Date.now(), meta: { kind: 'user' } }]);
     setUserInput("");
     setIsLoading(true);
 
     // Simulate typing delay for more natural feel
     await new Promise(resolve => setTimeout(resolve, 600));
 
-    const response = chatbot.generateResponse(userMsg);
+    const response = chatbot.generateResponse(userMsg, t);
       console.log("📥 Bot response:", response);
     chatbot.addMessage(response.text, 'bot');
-    setMessages(prev => [...prev, { content: response.text, type: 'bot', id: Date.now() }]);
+      setMessages(prev => [...prev, { content: response.text, type: 'bot', id: Date.now(), meta: { kind: 'response', userMessage: userMsg } }]);
 
     // Auto-execute action if high confidence
     if (response.action && response.confidence > 0.8) {
@@ -162,8 +188,8 @@ function SecurityChatbot() {
               ←
             </button>
             <div>
-              <h1 className="text-base md:text-lg font-bold text-slate-900">SurakshaPay AI</h1>
-              <p className="text-xs text-slate-500">Your fraud detection assistant</p>
+              <h1 className="text-base md:text-lg font-bold text-slate-900">{t('chatbot.title')}</h1>
+              <p className="text-xs text-slate-500">{t('chatbot.subtitle')}</p>
             </div>
           </div>
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
@@ -215,22 +241,22 @@ function SecurityChatbot() {
         {/* Quick Actions */}
         {messages.length > 0 && !actionInProgress && (
           <div className="px-4 md:px-6 py-3 border-t border-slate-200 bg-slate-50">
-            <p className="text-xs text-slate-600 mb-3 font-medium">Quick actions:</p>
+            <p className="text-xs text-slate-600 mb-3 font-medium">{t('chatbot.quickActions', 'Quick actions:')}</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {chatbot.getQuickActions().map((quickAction, idx) => (
+              {chatbot.getQuickActions(t).map((quickAction, idx) => (
                 <button
                   key={idx}
                   onClick={async () => {
                     if (quickAction.action === 'QUERY') {
                       // Treat as a "why" question
-                      const userMsg = 'Why is this risky?';
+                      const userMsg = t('chatbot.whyRisky', 'Why is this risky?');
                       chatbot.addMessage(userMsg, 'user');
-                      setMessages(prev => [...prev, { content: userMsg, type: 'user', id: Date.now() }]);
+                      setMessages(prev => [...prev, { content: userMsg, type: 'user', id: Date.now(), meta: { kind: 'user' } }]);
                       setIsLoading(true);
                       await new Promise(resolve => setTimeout(resolve, 400));
-                      const response = chatbot.generateResponse(userMsg);
+                      const response = chatbot.generateResponse(userMsg, t);
                       chatbot.addMessage(response.text, 'bot');
-                      setMessages(prev => [...prev, { content: response.text, type: 'bot', id: Date.now() }]);
+                      setMessages(prev => [...prev, { content: response.text, type: 'bot', id: Date.now(), meta: { kind: 'response', userMessage: userMsg } }]);
                       setIsLoading(false);
                       return;
                     }
@@ -265,7 +291,7 @@ function SecurityChatbot() {
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type your question or decision..."
+              placeholder={t('chatbot.typeMessage')}
               disabled={isLoading || actionInProgress}
               className="flex-1 px-4 py-2.5 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base disabled:bg-slate-100 disabled:cursor-not-allowed transition-all"
             />
@@ -273,7 +299,7 @@ function SecurityChatbot() {
               onClick={handleSendMessage}
               disabled={isLoading || !userInput.trim() || actionInProgress}
               className="bg-blue-600 text-white p-2.5 rounded-full hover:bg-blue-700 active:bg-blue-800 transition-colors flex items-center justify-center disabled:bg-slate-400 disabled:cursor-not-allowed flex-shrink-0 cursor-pointer"
-              aria-label="Send message"
+              aria-label={t('chatbot.send')}
             >
               {actionInProgress ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

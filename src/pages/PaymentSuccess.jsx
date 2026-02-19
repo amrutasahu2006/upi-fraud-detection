@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { CheckCircle, ArrowRight, FileText, Home } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 
 function PaymentSuccess() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTransaction, riskAnalysis } = useTransaction();
 
@@ -39,10 +41,10 @@ function PaymentSuccess() {
             </div>
             
             <h1 className="text-3xl font-bold text-white mb-2">
-              Payment Successful!
+              {t('paymentSuccess.title')}
             </h1>
             <p className="text-green-100 text-sm">
-              Your money has been transferred securely
+              {t('paymentSuccess.subtitle')}
             </p>
           </div>
         </div>
@@ -52,29 +54,29 @@ function PaymentSuccess() {
           
           {/* Amount Display */}
           <div className="text-center border-b border-gray-100 pb-6">
-            <p className="text-sm text-gray-500 mb-1">Amount Sent</p>
+            <p className="text-sm text-gray-500 mb-1">{t('paymentSuccess.amountSent')}</p>
             <p className="text-4xl font-bold text-gray-900">₹{amount.toLocaleString('en-IN')}</p>
           </div>
 
           {/* Transaction Info */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">To</span>
+              <span className="text-sm text-gray-500">{t('paymentSuccess.to')}</span>
               <span className="text-base font-semibold text-gray-900">{recipientName}</span>
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">UPI ID</span>
+              <span className="text-sm text-gray-500">{t('paymentSuccess.upiId')}</span>
               <span className="text-sm font-medium text-gray-700">{recipientVPA}</span>
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Transaction ID</span>
+              <span className="text-sm text-gray-500">{t('paymentSuccess.transactionId')}</span>
               <span className="text-xs font-mono text-gray-600">{transactionId.slice(-12)}</span>
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Date & Time</span>
+              <span className="text-sm text-gray-500">{t('paymentSuccess.dateTime')}</span>
               <span className="text-sm text-gray-700">
                 {timestamp.toLocaleString('en-IN', { 
                   dateStyle: 'medium', 
@@ -84,10 +86,10 @@ function PaymentSuccess() {
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500">Status</span>
+              <span className="text-sm text-gray-500">{t('transactions.status')}</span>
               <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
                 <CheckCircle size={14} className="mr-1" />
-                Completed
+                {t('transactions.completed')}
               </span>
             </div>
           </div>
@@ -99,7 +101,7 @@ function PaymentSuccess() {
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg shadow-blue-200 cursor-pointer"
             >
               <Home size={20} />
-              Make Another Payment
+              {t('paymentSuccess.makeAnotherPayment')}
             </button>
 
             <button
@@ -107,13 +109,13 @@ function PaymentSuccess() {
               className="w-full bg-white border-2 border-gray-200 text-gray-700 py-3 px-4 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2 cursor-pointer"
             >
               <FileText size={20} />
-              View Transaction History
+              {t('paymentSuccess.viewTransactionHistory')}
             </button>
           </div>
 
           {/* Auto-redirect Notice */}
           <p className="text-center text-xs text-gray-400 pt-2">
-            You'll be redirected to home in 10 seconds
+            {t('paymentSuccess.autoRedirect')}
           </p>
         </div>
 

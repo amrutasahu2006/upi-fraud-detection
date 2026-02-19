@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, UserCircle, Shield } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 export default function Header() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -25,6 +26,7 @@ export default function Header() {
         {/* Auth Section */}
         {!isAuthenticated ? (
           <div className="flex items-center space-x-4 mr-6">
+            <LanguageSwitcher />
             <NavLink
               to="/login"
               className="text-blue-600 hover:text-blue-800 font-medium"
@@ -40,6 +42,7 @@ export default function Header() {
           </div>
         ) : (
           <div className="flex items-center space-x-4 mr-6">
+            <LanguageSwitcher />
             <NavLink
               to="/profile"
               className="flex items-center space-x-2 text-gray-700 hover:text-blue-600"

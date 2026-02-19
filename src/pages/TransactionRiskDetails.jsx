@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Clock, Smartphone, MapPin, UserPlus, BarChart, ChevronRight, ShieldAlert, Calendar, TrendingUp, Activity, Globe, Monitor } from "lucide-react";
 import { useTransaction } from "../context/TransactionContext";
 import AIRecommendationPanel from "../components/AIRecommendationPanel";
+import { translateBackendReason } from "../utils/translateBackendReason";
 
 const TransactionRiskDetails = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTransaction, riskAnalysis, userLocation } = useTransaction();
 
@@ -208,7 +211,7 @@ const TransactionRiskDetails = () => {
 
   // Prepare text for Amount Analysis to be consistent with time analysis
   const amountPatterns = amountRiskDetails?.patterns;
-  let amountDetailsText = 'Analyzing transaction patterns...';
+  let amountDetailsText = t('riskDetails.amountAnalyzingPatterns');
   
   // Check if amount history is established.
   const hasAmountHistory = amountPatterns?.hasEnoughData && typeof amountPatterns?.averageAmount === 'number';
@@ -220,41 +223,52 @@ const TransactionRiskDetails = () => {
       const multiplier = (transactionAmount / averageAmount).toFixed(1);
       
       if (hasAmountRisk) {
-        amountDetailsText = `This amount is ${multiplier}x higher than your usual average of ₹${averageAmount.toFixed(0)}.`;
+        amountDetailsText = t('riskDetails.amountHigherThanUsualAverage', {
+          multiplier,
+          averageAmount: averageAmount.toFixed(0),
+        });
       } else {
-        amountDetailsText = `Your average transaction amount is ₹${averageAmount.toFixed(0)}.`;
+        amountDetailsText = t('riskDetails.averageTransactionAmount', {
+          averageAmount: averageAmount.toFixed(0),
+        });
       }
     }
     // If there is a risk but no established amount history, use a generic message.
     else if (hasAmountRisk) {
-      amountDetailsText = 'This amount is considered unusual for a new or establishing payment pattern.';
+      amountDetailsText = t('riskDetails.amountUnusualNewPattern');
     }
     // If there's not enough data for amount patterns, it's the first transaction.
     else if (amountPatterns && !amountPatterns.hasEnoughData) {
-      amountDetailsText = 'First transaction - building transaction history...';
+      amountDetailsText = t('riskDetails.firstTransactionBuildingHistory');
     }
     // Fallback to a generic reason if one exists.
     else if (amountRiskDetails.reason) {
-      amountDetailsText = amountRiskDetails.reason;
+      amountDetailsText = translateBackendReason(amountRiskDetails.reason, t);
     }
   } else if (hasAmountHistory) {
     // Fallback to direct amountAnalysis data if amountRiskDetails is not available but amount history exists
     const averageAmount = amountPatterns.averageAmount;
     const multiplier = (transactionAmount / averageAmount).toFixed(1);
-    amountDetailsText = `This amount is ${multiplier}x higher than your average of ₹${averageAmount.toFixed(0)}.`;
+    amountDetailsText = t('riskDetails.amountHigherThanAverage', {
+      multiplier,
+      averageAmount: averageAmount.toFixed(0),
+    });
   }
 
   // Prepare text for Recipient Analysis to avoid showing "unknown"
-  let recipientDetailsText = 'Analyzing recipient patterns...';
+  let recipientDetailsText = t('riskDetails.recipientAnalyzingPatterns');
   if (recipientRiskDetails) {
     if (recipientRiskDetails.isNewPayee) {
-      recipientDetailsText = 'First-time recipient.';
+      recipientDetailsText = t('riskDetails.firstTimeRecipient');
     } else if (recipientRiskDetails.profile) {
-      recipientDetailsText = `Transaction history: ${recipientRiskDetails.profile.transactionCount || 0} previous transactions`;
+      const transactionCount = recipientRiskDetails.profile.transactionCount || 0;
       if (typeof recipientRiskDetails.profile.averageAmount === 'number') {
-        recipientDetailsText += `, average ₹${recipientRiskDetails.profile.averageAmount.toFixed(0)}.`;
+        recipientDetailsText = t('riskDetails.recipientHistoryWithAverage', {
+          count: transactionCount,
+          averageAmount: recipientRiskDetails.profile.averageAmount.toFixed(0),
+        });
       } else {
-        recipientDetailsText += '.';
+        recipientDetailsText = t('riskDetails.recipientHistoryOnly', { count: transactionCount });
       }
     }
   }
@@ -264,8 +278,8 @@ const TransactionRiskDetails = () => {
     // Time Analysis - Always show current timing info
     {
       icon: Clock,
-      title: "Transaction Timing Analysis",
-      description: `Transaction initiated at ${transactionHour}:00 on ${transactionDayName}, ${transactionDate}. ${hasTimeRisk ? '⚠️ This timing is flagged as unusual compared to your typical patterns.' : '✅ Timing appears normal for your transaction history.'} ${timeRiskDetails ? `Typical hours: ${timeRiskDetails.typicalHours.length > 0 ? timeRiskDetails.typicalHours.map(hour => formatHourTo12Hour(hour)).join(', ') : 'Not established yet'}.` : ''}`,
+      title: t('riskDetails.timeAnalysis'),
+      description: `${t('riskDetails.transactionInitiatedAt', { hour: transactionHour, day: transactionDayName, date: transactionDate })} ${hasTimeRisk ? t('riskDetails.timingFlaggedUnusual') : t('riskDetails.timingAppearsNormal')} ${timeRiskDetails ? t('riskDetails.typicalHoursDescription', { hours: timeRiskDetails.typicalHours.length > 0 ? timeRiskDetails.typicalHours.map(hour => formatHourTo12Hour(hour)).join(', ') : t('riskDetails.notEstablishedYet') }) : ''}`,
       isRisk: hasTimeRisk,
       type: 'timing',
       details: {
@@ -280,8 +294,8 @@ const TransactionRiskDetails = () => {
     // Amount Analysis - Always show amount details
     {
       icon: TrendingUp,
-      title: "Amount Pattern Analysis",
-      description: `Transaction amount: ₹${transactionAmount.toLocaleString()}. ${hasAmountRisk ? '⚠️ This amount is anomalous.' : '✅ Amount is within normal range.'} ${amountDetailsText}`,
+      title: t('riskDetails.amountAnalysis'),
+      description: `${t('riskDetails.transactionAmountValue', { amount: transactionAmount.toLocaleString() })} ${hasAmountRisk ? t('riskDetails.amountAnomalous') : t('riskDetails.amountWithinNormalRange')} ${amountDetailsText}`,
       isRisk: hasAmountRisk,
       type: 'amount',
       details: {
@@ -295,13 +309,16 @@ const TransactionRiskDetails = () => {
     // Recipient Analysis - Always show recipient info
     {
       icon: UserPlus,
-      title: "Recipient History Analysis",
-      description: `Recipient: "${currentTransaction?.recipient?.name || 'Unknown'}" (${currentTransaction?.recipient?.upi || 'Unknown UPI ID'}). ${hasRecipientRisk ? '⚠️ This recipient is flagged as high-risk.' : '✅ Recipient status verified.'} ${recipientDetailsText}`,
+      title: t('riskDetails.recipientAnalysis'),
+      description: `${t('riskDetails.recipientDetailsSummary', {
+        name: currentTransaction?.recipient?.name || t('riskDetails.unknown'),
+        upi: currentTransaction?.recipient?.upi || t('riskDetails.unknownUpiId'),
+      })} ${hasRecipientRisk ? t('riskDetails.recipientFlaggedHighRisk') : t('riskDetails.recipientStatusVerified')} ${recipientDetailsText}`,
       isRisk: hasRecipientRisk,
       type: 'recipient',
       details: {
-        name: currentTransaction?.recipient?.name || 'Unknown',
-        upiId: currentTransaction?.recipient?.upi || 'Unknown',
+        name: currentTransaction?.recipient?.name || t('riskDetails.unknown'),
+        upiId: currentTransaction?.recipient?.upi || t('riskDetails.unknown'),
         isNewPayee: recipientRiskDetails?.isNewPayee || false,
         transactionCount: recipientRiskDetails?.profile?.transactionCount || 0,
         averageAmount: recipientRiskDetails?.profile?.averageAmount || 0
@@ -311,8 +328,12 @@ const TransactionRiskDetails = () => {
     // Device Information - Always show device details
     {
       icon: Monitor,
-      title: "Device & Browser Analysis",
-      description: `Transaction from ${deviceInfo.deviceType} device using ${deviceInfo.browser} browser on ${deviceInfo.platform} platform. ${hasDeviceRisk ? '⚠️ New or unrecognized device detected.' : '✅ Device fingerprint verified.'} User Agent: ${deviceInfo.userAgent.substring(0, 50)}...`,
+      title: t('security.reviewDevicesTitle'),
+      description: `${t('riskDetails.deviceSummary', {
+        deviceType: deviceInfo.deviceType,
+        browser: deviceInfo.browser,
+        platform: deviceInfo.platform,
+      })} ${hasDeviceRisk ? t('riskDetails.newOrUnrecognizedDeviceDetected') : t('riskDetails.deviceFingerprintVerified')} ${t('riskDetails.userAgentPrefix')} ${deviceInfo.userAgent.substring(0, 50)}...`,
       isRisk: hasDeviceRisk,
       type: 'device',
       details: {
@@ -327,8 +348,8 @@ const TransactionRiskDetails = () => {
     // Location Information - Always show location details
     {
       icon: Globe,
-      title: "Location & GPS Analysis",
-      description: `Location: ${currentLocation?.displayAddress || 'Unknown Location'}. ${locationAnalysis?.reason || (hasLocationRisk ? '⚠️ Location analysis indicates a risk.' : '✅ Location verified.')}`,
+      title: t('riskDetails.locationAnalysis'),
+      description: `${t('riskDetails.locationWithAddress', { address: currentLocation?.displayAddress || t('riskDetails.unknownLocation') })} ${translateBackendReason(locationAnalysis?.reason, t) || (hasLocationRisk ? t('riskDetails.locationAnalysisIndicatesRisk') : t('riskDetails.locationVerified'))}`,
       isRisk: hasLocationRisk,
       type: 'location',
       details: locationAnalysis ? {
@@ -351,7 +372,7 @@ const TransactionRiskDetails = () => {
         {/* Page Header */}
         <header className="flex items-center gap-3 px-4 py-3 md:px-6 md:py-4 border-b">
           <button onClick={() => navigate('/security-warning')} aria-label="Go back" className="text-2xl cursor-pointer">←</button>
-          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">Transaction Risk Details</h1>
+          <h1 className="text-base md:text-lg lg:text-xl font-semibold text-gray-900">{t('riskDetails.title')}</h1>
         </header>
 
         {/* Main Content */}
@@ -360,21 +381,21 @@ const TransactionRiskDetails = () => {
           {/* Transaction Summary */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-700">Transaction Summary</span>
+              <span className="text-sm font-medium text-blue-700">{t('riskDetails.transactionSummary')}</span>
               <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
                 {transactionDate} at {transactionTimeString}
               </span>
             </div>
             <div className="text-lg font-bold text-blue-900">
-              ₹{transactionAmount.toLocaleString()} to {currentTransaction?.recipient?.name || 'Unknown Recipient'}
+              ₹{transactionAmount.toLocaleString()} {t('riskDetails.toRecipient')} {currentTransaction?.recipient?.name || t('riskDetails.unknownRecipient')}
             </div>
             <div className="text-sm text-blue-700 mt-1">
-              UPI ID: {currentTransaction?.recipient?.upi || 'Unknown'}
+              {t('riskDetails.upiIdLabel')}: {currentTransaction?.recipient?.upi || t('riskDetails.unknown')}
             </div>
           </div>
 
           <p className="text-slate-500 mt-2 text-sm sm:text-base">
-            Internal Security Analysis for Transaction ID: <span className="font-mono font-medium text-slate-700">#{transactionId}</span>
+            {t('riskDetails.riskAnalysis')}: <span className="font-mono font-medium text-slate-700">#{transactionId}</span>
           </p>
 
           {/* Layout Grid */}
@@ -384,7 +405,7 @@ const TransactionRiskDetails = () => {
             <div className="lg:col-span-2 space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
-                  Comprehensive Security Analysis
+                  {t('riskDetails.riskAnalysis')}
                   <span className="px-2.5 py-0.5 text-[10px] sm:text-xs bg-blue-100 text-blue-600 rounded-full font-bold uppercase tracking-wider border border-blue-200">
                     AI-Powered
                   </span>
@@ -420,7 +441,7 @@ const TransactionRiskDetails = () => {
                           ? 'bg-red-100 text-red-700'
                           : 'bg-green-100 text-green-700'
                       }`}>
-                        {category.isRisk ? '⚠️ Risk' : '✅ Normal'}
+                        {category.isRisk ? `⚠️ ${t('securityWarning.riskDetected')}` : `✅ ${t('common.success')}`}
                       </span>
                     </div>
                     <p className="text-slate-500 leading-relaxed text-xs sm:text-sm mb-3">
@@ -432,26 +453,26 @@ const TransactionRiskDetails = () => {
                       <div className="text-xs text-slate-400 space-y-1">
                         {category.type === 'timing' && (
                           <>
-                            <div>Time: {category.details.currentTime}</div>
-                            <div>Day: {category.details.dayOfWeek}</div>
+                            <div>{t('riskDetails.detailTime')}: {category.details.currentTime}</div>
+                            <div>{t('riskDetails.detailDay')}: {category.details.dayOfWeek}</div>
                             {category.details.typicalHours.length > 0 && (
-                              <div>Typical Hours: {category.details.typicalHours.map(hour => formatHourTo12Hour(hour)).join(', ')}</div>
+                              <div>{t('riskDetails.detailTypicalHours')}: {category.details.typicalHours.map(hour => formatHourTo12Hour(hour)).join(', ')}</div>
                             )}
                           </>
                         )}
                         {category.type === 'amount' && (
                           <>
-                            <div>Amount: ₹{category.details.amount.toLocaleString()}</div>
+                            <div>{t('riskDetails.detailAmount')}: ₹{category.details.amount.toLocaleString()}</div>
                             {/* Only show historical comparisons if amount history is established */}
                             {hasAmountHistory && category.details.averageAmount > 0 && (
                               <>
-                                <div>Average: ₹{category.details.averageAmount.toFixed(0)}</div>
+                                <div>{t('riskDetails.detailAverage')}: ₹{category.details.averageAmount.toFixed(0)}</div>
                                 <div>
-                                  This is { (category.details.amount / category.details.averageAmount).toFixed(1) }x your average.
+                                  {t('riskDetails.amountRatioVsAverage', { ratio: (category.details.amount / category.details.averageAmount).toFixed(1) })}
                                 </div>
                                 {category.details.deviation !== 0 && (
                                   <div>
-                                    ({category.details.deviation.toFixed(1)} standard deviations from the average)
+                                    {t('riskDetails.standardDeviationFromAverage', { deviation: category.details.deviation.toFixed(1) })}
                                   </div>
                                 )}
                               </>
@@ -460,23 +481,23 @@ const TransactionRiskDetails = () => {
                         )}
                         {category.type === 'recipient' && (
                           <>
-                            <div>Name: {category.details.name}</div>
-                            <div>UPI: {category.details.upiId}</div>
-                            <div>Status: {category.details.isNewPayee ? 'New Recipient' : (category.details.transactionCount > 0 ? `${category.details.transactionCount} transactions` : 'No previous transactions with this recipient.')}</div>
+                            <div>{t('riskDetails.detailName')}: {category.details.name}</div>
+                            <div>{t('riskDetails.detailUpi')}: {category.details.upiId}</div>
+                            <div>{t('riskDetails.detailStatus')}: {category.details.isNewPayee ? t('riskDetails.newRecipient') : (category.details.transactionCount > 0 ? t('riskDetails.transactionCount', { count: category.details.transactionCount }) : t('riskDetails.noPreviousTransactionsWithRecipient'))}</div>
                           </>
                         )}
                         {category.type === 'device' && (
                           <>
-                            <div>Device: {category.details.deviceType}</div>
-                            <div>Browser: {category.details.browser}</div>
-                            <div>Platform: {category.details.platform}</div>
+                            <div>{t('riskDetails.detailDevice')}: {category.details.deviceType}</div>
+                            <div>{t('riskDetails.detailBrowser')}: {category.details.browser}</div>
+                            <div>{t('riskDetails.detailPlatform')}: {category.details.platform}</div>
                           </>
                         )}
                         {category.type === 'location' && category.details && (
                           <>
-                            <div>Location: {category.details.formattedAddress || `${category.details.city}, ${category.details.state}`}</div>
-                            {category.details.latitude && <div>Coordinates: {category.details.latitude.toFixed(4)}, {category.details.longitude.toFixed(4)}</div>}
-                            {typeof category.details.nearestDistance === 'number' && <div>Distance from typical: {category.details.nearestDistance.toFixed(1)} km</div>}
+                            <div>{t('riskDetails.detailLocation')}: {category.details.formattedAddress || `${category.details.city}, ${category.details.state}`}</div>
+                            {category.details.latitude && <div>{t('riskDetails.detailCoordinates')}: {category.details.latitude.toFixed(4)}, {category.details.longitude.toFixed(4)}</div>}
+                            {typeof category.details.nearestDistance === 'number' && <div>{t('riskDetails.detailDistanceFromTypical', { distance: category.details.nearestDistance.toFixed(1) })}</div>}
                           </>
                         )}
                       </div>
@@ -497,7 +518,7 @@ const TransactionRiskDetails = () => {
                   </div>
 
                   <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">
-                    AI Risk Probability
+                    {t('riskDetails.recommendation')}
                   </h3>
                   <div className="text-5xl sm:text-6xl font-black text-slate-900 mb-4">{displayRiskScore}%</div>
 
@@ -528,10 +549,10 @@ const TransactionRiskDetails = () => {
           {/* Suggested Next Action (Delay or Block) */}
           <div className="mt-8 lg:mt-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Suggested Next Step
+              {t('riskDetails.recommendation')}
             </h2>
             <p className="text-gray-600 text-sm mb-6">
-              Based on the current risk score and patterns, we recommend the safest action below.
+              {t('securityWarning.reviewTransaction')}
             </p>
 
             {/* Determine recommended action: BLOCK for >=80, DELAY for 60-79, DELAY for 30-59 */}
@@ -544,7 +565,7 @@ const TransactionRiskDetails = () => {
                 }`}
                 aria-label={`Delay transaction by ${delayMinutes} minutes`}
               >
-                ⏳ Delay Transaction ({delayMinutes} min)
+                ⏳ {t('riskDetails.delayTransaction')} ({delayMinutes} min)
               </button>
 
               {/* Block Button */}
@@ -555,7 +576,7 @@ const TransactionRiskDetails = () => {
                 }`}
                 aria-label="Block and report this transaction"
               >
-                🚫 Block Transaction
+                🚫 {t('riskDetails.blockTransaction')}
               </button>
             </div>
 
@@ -573,10 +594,10 @@ const TransactionRiskDetails = () => {
           {/* AI Recommendations Section */}
           <div className="mt-8 lg:mt-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Recommended Security Actions
+              {t('security.recommendations')}
             </h2>
             <p className="text-gray-600 text-sm mb-6">
-              Based on the detected risk factors, here are AI-powered recommendations to secure your account:
+              {t('security.staySecureDesc')}
             </p>
 
             <AIRecommendationPanel
