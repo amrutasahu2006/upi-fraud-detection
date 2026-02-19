@@ -39,7 +39,16 @@ import { useAuth } from "./context/AuthContext";
 
 // Role-based redirect component - redirects to login if not authenticated
 function RoleBasedRedirect() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
+  
+  // Wait for auth to finish loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   
   // If not logged in, redirect to login page
   if (!isAuthenticated || !user) {

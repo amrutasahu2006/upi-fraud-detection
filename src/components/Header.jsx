@@ -75,56 +75,58 @@ export default function Header() {
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <nav className="mr-4">
-          <div className="flex items-center gap-12">
-            {user?.role === "admin" ? (
-              // Admin navigation
-              [
-                { to: "/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
-                { to: "/admin/users", label: "Users", icon: UsersIcon },
-                { to: "/admin/risk-management", label: "Risk", icon: RiskIcon },
-                { to: "/fraud-analytics", label: "Analytics", icon: AnalyticsIcon },
-              ].map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `flex flex-col items-center py-3 ${
-                      isActive ? "text-blue-600" : "text-gray-500"
-                    }`
-                  }
-                >
-                  <Icon />
-                  <span className="text-xs mt-1">{label}</span>
-                </NavLink>
-              ))
-            ) : (
-              // User navigation
-              [
-                { to: "/payment", label: "Pay", icon: PayIcon },
-                { to: "/safety", label: "Safety", icon: SafetyIcon },
-                { to: "/safety-circle", label: "Circle", icon: CircleIcon },
-                { to: "/risk-details", label: "Insights", icon: InsightsIcon },
-                { to: "/transaction-history", label: "History", icon: HistoryIcon },
-                { to: "/privacy-settings", label: "Settings", icon: SettingsIcon },
-              ].map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `flex flex-col items-center py-3 ${
-                      isActive ? "text-blue-600" : "text-gray-500"
-                    }`
-                  }
-                >
-                  <Icon />
-                  <span className="text-xs mt-1">{label}</span>
-                </NavLink>
-              ))
-            )}
-          </div>
-        </nav>
+        {/* Navigation Tabs - Only show when authenticated */}
+        {isAuthenticated && (
+          <nav className="mr-4">
+            <div className="flex items-center gap-12">
+              {user?.role === "admin" ? (
+                // Admin navigation
+                [
+                  { to: "/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
+                  { to: "/admin/users", label: "Users", icon: UsersIcon },
+                  { to: "/admin/risk-management", label: "Risk", icon: RiskIcon },
+                  { to: "/fraud-analytics", label: "Analytics", icon: AnalyticsIcon },
+                ].map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      `flex flex-col items-center py-3 ${
+                        isActive ? "text-blue-600" : "text-gray-500"
+                      }`
+                    }
+                  >
+                    <Icon />
+                    <span className="text-xs mt-1">{label}</span>
+                  </NavLink>
+                ))
+              ) : (
+                // User navigation
+                [
+                  { to: "/payment", label: "Pay", icon: PayIcon },
+                  { to: "/safety", label: "Safety", icon: SafetyIcon },
+                  { to: "/safety-circle", label: "Circle", icon: CircleIcon },
+                  { to: "/risk-details", label: "Insights", icon: InsightsIcon },
+                  { to: "/transaction-history", label: "History", icon: HistoryIcon },
+                  { to: "/privacy-settings", label: "Settings", icon: SettingsIcon },
+                ].map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      `flex flex-col items-center py-3 ${
+                        isActive ? "text-blue-600" : "text-gray-500"
+                      }`
+                    }
+                  >
+                    <Icon />
+                    <span className="text-xs mt-1">{label}</span>
+                  </NavLink>
+                ))
+              )}
+            </div>
+          </nav>
+        )}
       </div>
     </header>
   );
