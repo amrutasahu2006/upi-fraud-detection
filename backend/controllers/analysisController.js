@@ -5,6 +5,7 @@ const BlacklistWhitelist = require('../models/BlacklistWhitelist');
 const NotificationService = require('../services/NotificationService');
 const RiskScoringEngine = require('../services/RiskScoringEngine');
 const DecisionEngine = require('../services/DecisionEngine');
+const FraudForecastService = require('../services/FraudForecastService');
 const mongoose = require('mongoose');
 
 /**
@@ -515,5 +516,39 @@ exports.blockTransaction = async (req, res) => {
   } catch (error) {
     console.error('❌ Block Transaction Error:', error);
     return res.status(500).json({ success: false, message: 'Failed to block transaction', error: error.message });
+  }
+};
+
+/**
+ * Get fraud forecast for user
+ * GET /api/analysis/forecast
+ */
+exports.getFraudForecast = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    console.log('🔮 Generating fraud forecast for user:', userId);
+    
+    const forecast = await FraudForecastService.generateForecast(userId);
+    
+    if (!forecast.success) {
+      return res.status(500).json({
+        success: false,
+        message: forecast.error || 'Failed to generate forecast'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: forecast.forecast
+    });
+    
+  } catch (error) {
+    console.error('❌ Fraud Forecast Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate fraud forecast',
+      error: error.message
+    });
   }
 };

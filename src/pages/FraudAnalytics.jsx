@@ -3,6 +3,7 @@ import FilterPill from "../components/FilterPill";
 import StatCard from "../components/StatCard";
 import RecentFraudItem from "../components/RecentFraudItem";
 import FraudHeatmap from "../components/FraudHeatmap";
+import FraudForecastWidget from "../components/FraudForecastWidget";
 
 export default function FraudAnalytics() {
   const [stats, setStats] = useState({
@@ -82,6 +83,9 @@ export default function FraudAnalytics() {
               />
             </div>
           </div>
+
+          {/* Fraud Forecast Widget */}
+          <FraudForecastWidget />
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

@@ -6,7 +6,8 @@ const {
   getThresholds,
   updateThresholds,
   delayTransaction,
-  blockTransaction
+  blockTransaction,
+  getFraudForecast
 } = require('../controllers/analysisController');
 // @route   POST /api/transactions/analyze
 // @desc    Analyze transaction risk in real-time using AI-driven behavior fingerprinting
@@ -215,6 +216,11 @@ router.post('/action/delay', protect, delayTransaction);
 // @desc    Block a transaction immediately
 // @access  Private
 router.post('/action/block', protect, blockTransaction);
+
+// @route   GET /api/analysis/forecast
+// @desc    Get fraud forecast for next 7 days
+// @access  Private
+router.get('/forecast', protect, getFraudForecast);
 
 module.exports = router;
 

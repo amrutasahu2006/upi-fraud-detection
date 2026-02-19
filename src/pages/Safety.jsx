@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import SafetyAlert from "../components/SafetyAlert";
 import UserCard from "../components/UserCard";
 import ExpandCircle from "../components/ExpandCircle";
+import FraudForecastWidget from "../components/FraudForecastWidget";
 import { users } from "../data/users";
 
 export default function Safety() {
@@ -18,6 +19,9 @@ export default function Safety() {
 
         {/* Main Content */}
         <main className="p-4 md:p-6 lg:p-8 space-y-6">
+
+          {/* Fraud Forecast Widget */}
+          <FraudForecastWidget />
 
           {/* Safety Alert */}
           <SafetyAlert />
